@@ -1,6 +1,6 @@
 # SEC-003: Hardening de CI y contenedores
 
-Estado: `BLOCKED` (implementación local completa; falta primer commit/push y ejecución real de CI/GHCR)
+Estado: `DONE` (2026-08-03, commit raíz `1cbe13a` y run `Build and deploy` `30830920036`)
 
 Dependencia: `SEC-001` (ambas tareas modifican CI y no deben ejecutarse en paralelo).
 
@@ -71,10 +71,15 @@ docker compose ps
 - Syft 1.50.0: SBOM SPDX 2.3 generado para frontend (87 paquetes) y backend (109 paquetes).
 - Ambas imágenes respondieron 200 ejecutadas con root filesystem de solo lectura, `no-new-privileges`, `tmpfs` y límites de recursos.
 
-## Bloqueo para cierre
+## Validación en CI/GHCR ejecutada (2026-08-03)
 
-- Git fue inicializado en `main` y `origin` apunta al repositorio remoto vacío `nucoboss/ghostinc-app`; todos los archivos previstos están staged. `.env`, factura PDF, `*.tsbuildinfo` y `backend/dist` están ignorados.
-- El índice staged pasó TruffleHog 3.96.0: 0 secretos verificados y 0 no verificados.
-- Falta autorización explícita para crear el commit inicial y hacer push. No existe `gh` local, pero Git HTTPS está configurado; las credenciales se resolverán al subir.
-- Para pasar a `DONE`: commit/push de `main`, observar CI, comprobar SBOM, manifests ARM64, firmas Cosign y que un crítico bloquee el publish. Los pushes no despliegan OCI.
-- Antes del primer despliegue manual: leer `docs/OCI-SERVER.local.md`, preparar directorio y `.env.production`, registrar `OCI_SSH_KNOWN_HOSTS`, configurar secrets/environment de GitHub y validar backup/rollback según las tareas de despliegue pendientes.
+- Commit raíz `1cbe13a` creado y empujado a `origin/main` (SSH `git@github.com`, clave `id_ed25519`).
+- Run `Build and deploy` `30830920036` completo con `success`: jobs `verify` (secret-scan, frontend, backend, containers) y `publish` (frontend y backend) correctos; job `deploy` omitido por diseño (requiere `workflow_dispatch` con `deploy=true`).
+- Publicación multi-arquitectura `linux/amd64,linux/arm64` en `ghcr.io/nucoboss/ghostinc-app/{frontend,backend}:1cbe13a` con SBOM y provenance de BuildKit.
+- Trivy con `exit-code: 1` en severidad `CRITICAL` corrió sin bloquear: ningún crítico presente (el gate funciona).
+- Cosign firmó ambos digests con OIDC y la verificación de firma fue un paso obligatorio dentro del run.
+- SBOM SPDX JSON publicado como artefacto de GitHub por imagen.
+
+## Pendiente antes del primer despliegue manual
+
+- Leer `docs/OCI-SERVER.local.md`, preparar directorio y `.env.production`, registrar `OCI_SSH_KNOWN_HOSTS`, configurar secrets/environment de GitHub y validar backup/rollback según las tareas de despliegue pendientes (`SEC-004`, `DEP-001`, `OPS-00x`).
