@@ -1,8 +1,8 @@
 # SEC-004: Flujo seguro de variables y secretos
 
-Estado: `BLOCKED`
+Estado: `IN_PROGRESS` (implementación local completa; verificación de rotación en staging pendiente de `OPS-002`)
 
-Dependencia: `SEC-003`.
+Dependencia: `SEC-003` (DONE).
 
 ## Objetivo
 
@@ -32,3 +32,22 @@ Definir e implementar cómo se generan, almacenan, entregan, rotan y revocan cre
 - Ejecutar secret scanning sobre historial y cambios actuales.
 - Ejecutar un despliegue de staging con valores de prueba y revisar logs completos.
 - Rotar un secreto no crítico en staging y demostrar que el valor anterior queda revocado.
+
+## Implementación ejecutada (2026-08-03)
+
+- Matriz completa de variables sin valores en `docs/ENV-MATRIX.md` (entorno, origen, servicio consumidor, invariantes).
+- Flujo de bootstrap, rotación, revocación, rollback, permisos `600` y responsables en `docs/SECRETS-FLOW.md`.
+- Job `env-file-guard` en `.github/workflows/ci.yml`: falla si se trackea un `.env*` que no sea `*.env.example`.
+- `deploy/README.md` actualizado: secretos OCI viven en GitHub Environment `production` (con `Required reviewers` recomendado), `.env.production` se instala por canal seguro con `install -m 600 -o root -g root` y el workflow nunca transporta su contenido.
+- Confirmado por código: el workflow despliega sin leer el contenido de `.env.production` (solo digests, compose y Caddyfile por SCP/SSH).
+
+## Verificación local ejecutada
+
+- Guard `env-file-guard` validado localmente: 0 archivos `.env*` no-example trackeados (`.env.example` raíz y backend pasan correctamente).
+- `docker compose config --quiet` y `docker compose --env-file .env.production.example -f compose.production.yaml config --quiet`: correctos.
+- Gitleaks sobre el árbol: hallazgos solo en `.env` (local, ignorado) y `.next/` (artefacto ignorado); 0 hallazgos en archivos trackeados.
+
+## Pendiente humano para cerrar
+
+- Crear Environment `production` en GitHub y cargar `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY`, `OCI_DEPLOY_PATH`, `OCI_SSH_KNOWN_HOSTS`.
+- Despliegue de staging con valores de prueba y rotación demostrada (`OPS-002`).

@@ -113,7 +113,7 @@ Ruta principal de producto local:
 Ruta paralela de despliegue:
 
 1. `SEC-003`: hardening de CI e imágenes. **DONE** (2026-08-03): commit raíz `1cbe13a` empujado a `main`; run `Build and deploy` 30830920036 con verify + publish success, imágenes multi-arch `amd64/arm64` firmadas con Cosign OIDC y SBOM SPDX por imagen; Trivy sin críticos; `deploy` omitido por diseño.
-2. `SEC-004`: flujo seguro de variables, credenciales y secretos. **READY**.
+2. `SEC-004`: flujo seguro de variables, credenciales y secretos. **IN_PROGRESS** (2026-08-03): matriz en `docs/ENV-MATRIX.md`, flujo en `docs/SECRETS-FLOW.md`, guard `env-file-guard` en CI, secretos OCI movidos a Environment `production`; cierre pendiente de staging y credenciales OCI.
 3. `DEP-001`: Compose y workflow OCI ARM64.
 4. `OPS-002`: slot aislado de staging en OCI.
 5. `OPS-001`: backups, restauración, observabilidad y runbooks.

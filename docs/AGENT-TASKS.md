@@ -52,7 +52,7 @@ Esta ruta puede avanzar después de `SEC-001` mientras continúa el producto loc
 | Orden | ID | Estado | Tarea | Dependencias |
 |---:|---|---|---|---|
 | 1 | SEC-003 | DONE | [Hardening de CI y contenedores](tasks/SEC-003-supply-chain.md) | Ninguna; validado en run `Build and deploy` 30830920036 (commit `1cbe13a`) |
-| 2 | SEC-004 | READY | [Flujo seguro de variables y secretos](tasks/SEC-004-secrets-flow.md) | SEC-003 |
+| 2 | SEC-004 | IN_PROGRESS | [Flujo seguro de variables y secretos](tasks/SEC-004-secrets-flow.md) | SEC-003; implementación local hecha; cierre pendiente de staging (`OPS-002`) y Environment `production` |
 | 3 | DEP-001 | BLOCKED | [Artefactos de despliegue OCI ARM64](tasks/DEP-001-oci-deployment.md) | SEC-003, SEC-004 |
 | 4 | OPS-002 | BLOCKED | [Slot de staging en OCI](tasks/OPS-002-oci-staging.md) | DEP-001, dominio y credenciales de staging |
 | 5 | OPS-001 | BLOCKED | [Backups y observabilidad OCI](tasks/OPS-001-operations.md) | OPS-002, definición humana de RPO/RTO |

@@ -30,6 +30,19 @@ jobs:
           version: 3.96.0
           extra_args: --only-verified
 
+  env-file-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reject forbidden .env* files
+        run: |
+          forbidden=$(git ls-files | grep -E '(^|/)(\.env|\.env\.[^.]+)$' | grep -v '\.env\.example$' || true)
+          if [ -n "$forbidden" ]; then
+            echo "Se detectaron archivos .env* permitidos solo como .env.example:"
+            printf '%s\n' "$forbidden"
+            exit 1
+          fi
+
   frontend:
     runs-on: ubuntu-latest
     steps:

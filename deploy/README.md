@@ -4,8 +4,11 @@
 
 1. Crea una VM Ubuntu 24.04 con IP pública reservada.
 2. Instala Docker Engine y el plugin Docker Compose.
-3. Crea el directorio indicado por el secreto `OCI_DEPLOY_PATH`.
-4. Copia `.env.production.example` como `.env.production` y reemplaza todos los secretos.
+3. Crea el directorio indicado por el secreto `OCI_DEPLOY_PATH` con `chmod 700`.
+4. Instala `.env.production` por el canal seguro definido en `docs/SECRETS-FLOW.md` (nunca en Git ni en comandos del workflow):
+   ```bash
+   install -m 600 -o root -g root /ruta/origen/.env.production $OCI_DEPLOY_PATH/.env.production
+   ```
 5. Abre TCP 80 y 443 en la Security List y en el firewall de la VM.
 6. No publiques los puertos de PostgreSQL, frontend o backend.
 7. Si GHCR es privado, ejecuta una vez `docker login ghcr.io` en la VM.
@@ -21,14 +24,17 @@
 
 ## GitHub
 
-Configura estos secretos del repositorio:
+Define un **Environment llamado `production`** (Settings > Environments) y configura en él estos secretos del repositorio:
 
 - `OCI_HOST`: IP o hostname de la VM.
 - `OCI_USER`: usuario SSH.
 - `OCI_SSH_KEY`: clave SSH privada de despliegue.
 - `OCI_DEPLOY_PATH`: ruta absoluta del despliegue, por ejemplo `/opt/ghostinc`.
+- `OCI_SSH_KNOWN_HOSTS`: huellas del host, formato `known_hosts`.
 
-Cada push a `main` publica dos imágenes en GHCR y actualiza Compose en OCI. Las migraciones se ejecutan al iniciar el backend y son idempotentes.
+Habilita `Required reviewers` en el Environment: el job `deploy` solo corre con `workflow_dispatch` y `deploy=true`.
+
+Cada push a `main` publica dos imágenes en GHCR y actualiza Compose en OCI, **sin transportar el contenido de `.env.production`**. Las migraciones se ejecutan al iniciar el backend y son idempotentes.
 
 ## Primera API key
 
