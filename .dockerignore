@@ -1,0 +1,9 @@
+node_modules
+.next
+backend
+.git
+.github
+deploy
+*.log
+.env*
+ghostinc-landing.html

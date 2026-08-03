@@ -1,0 +1,11 @@
+node_modules/
+.next/
+backend/dist/
+out/
+.env*
+!**/.env.example
+npm-debug.log*
+*.tsbuildinfo
+/invoice_*.pdf
+.DS_Store
+docs/OCI-SERVER.local.md

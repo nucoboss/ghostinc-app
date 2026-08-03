@@ -1,0 +1,35 @@
+{
+  "name": "ghostinc-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "migrate": "tsx src/scripts/migrate.ts",
+    "migrate:prod": "node dist/scripts/migrate.js",
+    "bootstrap": "tsx src/scripts/bootstrap.ts",
+    "bootstrap:prod": "node dist/scripts/bootstrap.js",
+    "bootstrap:admin": "tsx src/scripts/create-admin-invite.ts",
+    "bootstrap:admin:prod": "node dist/scripts/create-admin-invite.js",
+    "test": "tsx --test --test-concurrency=1 test/*.test.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "latest",
+    "@fastify/helmet": "latest",
+    "@fastify/rate-limit": "latest",
+    "argon2": "^0.45.1",
+    "dotenv": "latest",
+    "fastify": "latest",
+    "pg": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/pg": "latest",
+    "tsx": "latest",
+    "typescript": "6.0.3"
+  }
+}

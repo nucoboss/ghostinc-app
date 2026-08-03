@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghostinc — Investiga empresas chilenas sin dejar rastro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#0A0A0A;
+    --ink:#17171A;
+    --charcoal:#3A3A3D;
+    --slate:#6E6E70;
+    --steel:#9C9C9E;
+    --silver:#C7C7C8;
+    --fog:#E4E4E2;
+    --white:#FFFFFF;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--black);
+    color:var(--fog);
+    font-family:var(--font-body);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  a{color:inherit; text-decoration:none;}
+
+  .wrap{
+    max-width:1120px;
+    margin:0 auto;
+    padding:0 32px;
+  }
+
+  /* ---------- NAV ---------- */
+
+  nav{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(10,10,10,0.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+
+  nav .wrap{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    height:72px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:19px;
+    color:var(--white);
+  }
+
+  .brand svg{width:22px; height:22px; color:var(--white);}
+
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap:36px;
+    font-size:14px;
+    color:var(--steel);
+  }
+
+  .nav-links a:hover{color:var(--white);}
+
+  .nav-cta{
+    padding:9px 18px;
+    border:1px solid var(--silver);
+    border-radius:6px;
+    font-size:14px;
+    color:var(--white) !important;
+    transition:background .15s ease, border-color .15s ease;
+  }
+
+  .nav-cta:hover{background:var(--white); color:var(--black) !important; border-color:var(--white);}
+
+  /* ---------- HERO ---------- */
+
+  .hero{
+    position:relative;
+    overflow:hidden;
+    padding:120px 0 96px;
+    text-align:center;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+
+  .hero-content{position:relative; z-index:1;}
+
+  /* ---------- ROAMING GHOST (whole-page background) ---------- */
+
+  #roaming-ghost{
+    position:fixed;
+    top:0;
+    left:0;
+    width:220px;
+    color:var(--white);
+    opacity:0.05;
+    pointer-events:none;
+    z-index:0;
+    will-change:transform, opacity;
+  }
+
+  #roaming-ghost svg{width:100%; height:auto; display:block;}
+
+  @media (prefers-reduced-motion: reduce){
+    #roaming-ghost{opacity:0.04;}
+  }
+
+  .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    color:var(--steel);
+    border:1px solid rgba(255,255,255,0.14);
+    padding:6px 14px;
+    border-radius:20px;
+    margin-bottom:28px;
+  }
+
+  .eyebrow .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--white);
+    animation:blink 1.6s steps(1) infinite;
+  }
+
+  @keyframes blink{ 0%,49%{opacity:1;} 50%,100%{opacity:0.15;} }
+
+  h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(34px, 5.5vw, 60px);
+    line-height:1.08;
+    letter-spacing:-0.01em;
+    color:var(--white);
+    max-width:820px;
+    margin:0 auto 22px;
+  }
+
+  .hero p.sub{
+    font-size:17px;
+    color:var(--steel);
+    max-width:560px;
+    margin:0 auto 44px;
+  }
+
+  /* ---------- SEARCH ---------- */
+
+  .search-box{
+    max-width:600px;
+    margin:0 auto;
+    position:relative;
+  }
+
+  .search-terminal{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--ink);
+    border:1px solid var(--charcoal);
+    border-radius:10px;
+    padding:6px 6px 6px 20px;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+
+  .search-terminal:focus-within{
+    border-color:var(--silver);
+    box-shadow:0 0 0 4px rgba(255,255,255,0.06);
+  }
+
+  .search-terminal .prompt{
+    font-family:var(--font-mono);
+    color:var(--steel);
+    font-size:15px;
+    flex-shrink:0;
+  }
+
+  .search-terminal input{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--white);
+    font-family:var(--font-mono);
+    font-size:15px;
+    padding:12px 0;
+  }
+
+  .search-terminal input::placeholder{color:var(--slate);}
+
+  .search-terminal button{
+    background:var(--white);
+    color:var(--black);
+    border:none;
+    border-radius:6px;
+    padding:12px 22px;
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:opacity .15s ease;
+  }
+
+  .search-terminal button:hover{opacity:0.85;}
+
+  .search-note{
+    margin-top:16px;
+    font-size:13px;
+    color:var(--slate);
+  }
+
+  .search-note strong{color:var(--steel); font-weight:500;}
+
+  /* ---------- SECTION SHARED ---------- */
+
+  section{padding:88px 0;}
+
+  .section-head{
+    text-align:center;
+    max-width:600px;
+    margin:0 auto 56px;
+  }
+
+  .section-tag{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--slate);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:14px;
+    display:block;
+  }
+
+  .section-head h2{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:clamp(26px, 3.5vw, 36px);
+    color:var(--white);
+    letter-spacing:-0.01em;
+    margin-bottom:14px;
+  }
+
+  .section-head p{color:var(--steel); font-size:15.5px;}
+
+  /* ---------- AUDIENCE CARDS ---------- */
+
+  .audience{border-bottom:1px solid rgba(255,255,255,0.08);}
+
+  .audience-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:1px;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;
+    overflow:hidden;
+  }
+
+  .audience-card{
+    background:var(--black);
+    padding:36px 30px;
+    transition:background .2s ease;
+  }
+
+  .audience-card:hover{background:var(--ink);}
+
+  .audience-card .tier{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:0.06em;
+    color:var(--slate);
+    text-transform:uppercase;
+    margin-bottom:16px;
+    display:block;
+  }
+
+  .audience-card h3{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:19px;
+    color:var(--white);
+    margin-bottom:10px;
+  }
+
+  .audience-card p{
+    font-size:14.5px;
+    color:var(--steel);
+  }
+
+  /* ---------- HOW IT WORKS ---------- */
+
+  .steps{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:0;
+    background:var(--ink);
+    border:1px solid var(--charcoal);
+    border-radius:12px;
+    overflow:hidden;
+  }
+
+  .step{
+    padding:34px 30px;
+    border-right:1px solid var(--charcoal);
+  }
+
+  .step:last-child{border-right:none;}
+
+  .step .cmd{
+    font-family:var(--font-mono);
+    font-size:14px;
+    color:var(--white);
+    margin-bottom:14px;
+  }
+
+  .step .cmd span{color:var(--steel);}
+
+  .step p{font-size:14.5px; color:var(--steel);}
+
+  /* ---------- PRICING ---------- */
+
+  .pricing{border-top:1px solid rgba(255,255,255,0.08);}
+
+  .pricing-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:24px;
+  }
+
+  .plan{
+    border:1px solid var(--charcoal);
+    border-radius:14px;
+    padding:38px 34px;
+    background:var(--ink);
+  }
+
+  .plan.featured{
+    background:var(--white);
+    color:var(--black);
+    border-color:var(--white);
+  }
+
+  .plan-tier{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-bottom:18px;
+    display:block;
+  }
+
+  .plan.featured .plan-tier{color:var(--charcoal);}
+
+  .plan h3{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:26px;
+    margin-bottom:6px;
+  }
+
+  .plan .price{
+    font-family:var(--font-mono);
+    font-size:14px;
+    color:var(--steel);
+    margin-bottom:24px;
+    display:block;
+  }
+
+  .plan.featured .price{color:var(--charcoal);}
+
+  .plan ul{list-style:none;}
+
+  .plan li{
+    font-size:14.5px;
+    color:var(--steel);
+    padding:9px 0;
+    border-top:1px solid var(--charcoal);
+    display:flex;
+    gap:10px;
+  }
+
+  .plan.featured li{color:var(--charcoal); border-top-color:var(--silver);}
+
+  .plan li:first-of-type{border-top:none;}
+
+  .plan-cta{
+    display:block;
+    text-align:center;
+    margin-top:28px;
+    padding:13px;
+    border-radius:8px;
+    font-weight:600;
+    font-size:14.5px;
+    border:1px solid var(--silver);
+    color:var(--white);
+    transition:background .15s ease;
+  }
+
+  .plan-cta:hover{background:rgba(255,255,255,0.06);}
+
+  .plan.featured .plan-cta{
+    background:var(--black);
+    color:var(--white);
+    border-color:var(--black);
+  }
+
+  .plan.featured .plan-cta:hover{opacity:0.85;}
+
+  /* ---------- FOOTER ---------- */
+
+  footer{
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding:40px 0;
+  }
+
+  footer .wrap{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:16px;
+  }
+
+  footer .foot-brand{
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--font-display);
+    font-size:14px;
+    color:var(--steel);
+  }
+
+  footer .foot-brand svg{width:15px; height:15px;}
+
+  footer .foot-links{
+    display:flex; gap:28px;
+    font-size:13.5px;
+    color:var(--slate);
+  }
+
+  footer .foot-links a:hover{color:var(--steel);}
+
+  /* ---------- RESPONSIVE ---------- */
+
+  @media (max-width:760px){
+    .audience-grid{grid-template-columns:1fr;}
+    .steps{grid-template-columns:1fr;}
+    .step{border-right:none; border-bottom:1px solid var(--charcoal);}
+    .step:last-child{border-bottom:none;}
+    .pricing-grid{grid-template-columns:1fr;}
+    .nav-links{display:none;}
+    .search-terminal{flex-wrap:wrap;}
+    .search-terminal button{width:100%; margin-top:8px;}
+    .hero{padding:88px 0 64px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .eyebrow .dot{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="roaming-ghost" aria-hidden="true">
+  <svg viewBox="0 0 425.73 511.96" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0,511.96) scale(0.1,-0.1)" fill="currentColor" stroke="none"><path d="M2340 5109 c-358 -36 -716 -179 -1020 -407 -93 -69 -261 -231 -346 -334 -252 -301 -434 -707 -503 -1121 -42 -249 -44 -343 -37 -1771 4 -748 8 -1362 11 -1364 2 -2 160 71 352 163 l349 166 320 -198 c175 -109 335 -209 355 -221 l36 -21 353 219 353 220 31 -18 c17 -10 177 -110 354 -220 l324 -202 354 220 353 220 346 -165 c191 -91 351 -165 356 -165 6 0 9 508 6 1458 -3 1556 -2 1519 -53 1762 -136 658 -509 1197 -1051 1517 -360 212 -807 306 -1243 262z m-540 -2373 l525 -123 -1 -30 c-3 -56 -63 -161 -136 -239 -200 -210 -510 -242 -751 -78 -111 76 -198 200 -232 331 -16 59 -21 209 -10 255 6 24 9 25 43 16 20 -5 273 -64 562 -132z m2131 9 c-1 -165 -57 -300 -172 -415 -230 -231 -601 -224 -828 15 -72 77 -132 182 -135 238 l-1 30 560 131 c645 152 576 152 576 1z"/></g></svg>
+</div>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 425.73 511.96" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0,511.96) scale(0.1,-0.1)" fill="currentColor" stroke="none"><path d="M2340 5109 c-358 -36 -716 -179 -1020 -407 -93 -69 -261 -231 -346 -334 -252 -301 -434 -707 -503 -1121 -42 -249 -44 -343 -37 -1771 4 -748 8 -1362 11 -1364 2 -2 160 71 352 163 l349 166 320 -198 c175 -109 335 -209 355 -221 l36 -21 353 219 353 220 31 -18 c17 -10 177 -110 354 -220 l324 -202 354 220 353 220 346 -165 c191 -91 351 -165 356 -165 6 0 9 508 6 1458 -3 1556 -2 1519 -53 1762 -136 658 -509 1197 -1051 1517 -360 212 -807 306 -1243 262z m-540 -2373 l525 -123 -1 -30 c-3 -56 -63 -161 -136 -239 -200 -210 -510 -242 -751 -78 -111 76 -198 200 -232 331 -16 59 -21 209 -10 255 6 24 9 25 43 16 20 -5 273 -64 562 -132z m2131 9 c-1 -165 -57 -300 -172 -415 -230 -231 -601 -224 -828 15 -72 77 -132 182 -135 238 l-1 30 560 131 c645 152 576 152 576 1z"/></g></svg>
+      Ghostinc
+    </div>
+    <div class="nav-links">
+      <a href="#producto">Producto</a>
+      <a href="#precios">Precios</a>
+      <a href="#" class="nav-cta">Ingresar</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="wrap hero-content">
+    <span class="eyebrow"><span class="dot"></span>OSINT corporativo · Chile</span>
+    <h1>Investiga empresas chilenas sin dejar rastro.</h1>
+    <p class="sub">Ghostinc cruza el Diario Oficial, el SII, el boletín concursal y otras fuentes públicas para darte el perfil completo de cualquier empresa, antes de invertir, publicar o contratar.</p>
+
+    <div class="search-box">
+      <div class="search-terminal">
+        <span class="prompt">&gt;</span>
+        <input type="text" placeholder="RUT o razón social..." aria-label="Buscar empresa por RUT o razón social">
+        <button type="button">Buscar</button>
+      </div>
+      <p class="search-note"><strong>Gratis</strong> para búsquedas básicas. Sin registro. Planes de empresa para verificación KYC completa.</p>
+    </div>
+  </div>
+</section>
+
+<section class="audience" id="producto">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Para quién</span>
+      <h2>Un mismo rastro, tres formas de usarlo</h2>
+      <p>Ghostinc se adapta a lo que necesitas saber, y a qué tan a fondo necesitas saberlo.</p>
+    </div>
+
+    <div class="audience-grid">
+      <div class="audience-card">
+        <span class="tier">Gratis</span>
+        <h3>Periodistas</h3>
+        <p>Verifica antes de publicar. Estructura societaria, representantes legales y antecedentes públicos en minutos.</p>
+      </div>
+      <div class="audience-card">
+        <span class="tier">Gratis</span>
+        <h3>Inversionistas</h3>
+        <p>Due diligence exprés. Historial, socios y señales de riesgo tempranas antes de firmar cualquier acuerdo.</p>
+      </div>
+      <div class="audience-card">
+        <span class="tier">Plan empresa</span>
+        <h3>Compliance / KYC</h3>
+        <p>Onboarding de proveedores sin fricción. Verificación continua, alertas de cambios y reportes exportables.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Cómo funciona</span>
+      <h2>Tres comandos, un informe</h2>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <p class="cmd"><span>$</span> buscar --empresa</p>
+        <p>Ingresa un RUT o una razón social. No necesitas saber más que eso.</p>
+      </div>
+      <div class="step">
+        <p class="cmd"><span>$</span> rastrear --fuentes</p>
+        <p>Cruzamos registros públicos, boletines y fuentes abiertas sin que la empresa se entere.</p>
+      </div>
+      <div class="step">
+        <p class="cmd"><span>$</span> recibir --informe</p>
+        <p>Un perfil estructurado, listo para citar, compartir o adjuntar a un expediente.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="precios">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="section-tag">Precios</span>
+      <h2>Simple para uno, serio para muchos</h2>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="plan">
+        <span class="plan-tier">Público general</span>
+        <h3>Gratis</h3>
+        <span class="price">$0 / siempre</span>
+        <ul>
+          <li>Búsquedas ilimitadas básicas</li>
+          <li>Ficha resumida por empresa</li>
+          <li>Sin necesidad de registro</li>
+          <li>Ideal para periodistas e inversionistas</li>
+        </ul>
+        <a href="#" class="plan-cta">Empezar a buscar</a>
+      </div>
+      <div class="plan featured">
+        <span class="plan-tier">Empresas / KYC</span>
+        <h3>Business</h3>
+        <span class="price">Cotización según volumen</span>
+        <ul>
+          <li>Informes completos de verificación</li>
+          <li>Alertas de cambios societarios</li>
+          <li>Exportación de reportes (PDF / API)</li>
+          <li>Verificación continua de proveedores</li>
+        </ul>
+        <a href="#" class="plan-cta">Hablar con ventas</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-brand">
+      <svg viewBox="0 0 425.73 511.96" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0,511.96) scale(0.1,-0.1)" fill="currentColor" stroke="none"><path d="M2340 5109 c-358 -36 -716 -179 -1020 -407 -93 -69 -261 -231 -346 -334 -252 -301 -434 -707 -503 -1121 -42 -249 -44 -343 -37 -1771 4 -748 8 -1362 11 -1364 2 -2 160 71 352 163 l349 166 320 -198 c175 -109 335 -209 355 -221 l36 -21 353 219 353 220 31 -18 c17 -10 177 -110 354 -220 l324 -202 354 220 353 220 346 -165 c191 -91 351 -165 356 -165 6 0 9 508 6 1458 -3 1556 -2 1519 -53 1762 -136 658 -509 1197 -1051 1517 -360 212 -807 306 -1243 262z m-540 -2373 l525 -123 -1 -30 c-3 -56 -63 -161 -136 -239 -200 -210 -510 -242 -751 -78 -111 76 -198 200 -232 331 -16 59 -21 209 -10 255 6 24 9 25 43 16 20 -5 273 -64 562 -132z m2131 9 c-1 -165 -57 -300 -172 -415 -230 -231 -601 -224 -828 15 -72 77 -132 182 -135 238 l-1 30 560 131 c645 152 576 152 576 1z"/></g></svg>
+      Ghostinc © 2026
+    </div>
+    <div class="foot-links">
+      <a href="#">Términos</a>
+      <a href="#">Privacidad</a>
+      <a href="#">Contacto</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var el = document.getElementById('roaming-ghost');
+  if(!el) return;
+
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var size = el.offsetWidth || 220;
+
+  var x = Math.random() * window.innerWidth;
+  var y = Math.random() * window.innerHeight;
+
+  var speed = 0.026; // px per ms, constant — no sudden speed changes
+
+  // heading slowly sweeps a full circle over ~50s, with a gentle secondary
+  // wobble layered on top — smooth and continuous, never jitters frame to frame
+  var headingPeriod = 50000;    // ms for one full slow rotation
+  var wobbleAmp = 0.55;         // rad
+  var wobblePeriod = 9000;      // ms
+  var headingPhase = Math.random() * Math.PI * 2;
+  var wobblePhase = Math.random() * Math.PI * 2;
+
+  // depth (z) breathes in/out on its own slow, independent cycle:
+  // 0 = far (small, faint, "lost in the background") · 1 = near (large, clearer)
+  var depthPeriod = 21000;      // ms — deliberately not a multiple of headingPeriod
+  var depthPhase = Math.random() * Math.PI * 2;
+
+  var SCALE_FAR = 0.6, SCALE_NEAR = 1.3;
+  var OPACITY_FAR = 0.02, OPACITY_NEAR = 0.085;
+
+  var start = null;
+
+  function step(now){
+    if (start === null) start = now;
+    var t = now - start;
+
+    var angle = (2 * Math.PI * t / headingPeriod) + headingPhase
+              + wobbleAmp * Math.sin(2 * Math.PI * t / wobblePeriod + wobblePhase);
+
+    // dt-independent step: derive velocity from elapsed time directly each frame
+    var dt = step._last === undefined ? 16 : Math.min(now - step._last, 50);
+    step._last = now;
+
+    x += Math.cos(angle) * speed * dt;
+    y += Math.sin(angle) * speed * dt;
+
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    // wrap around edges — exits one side, enters the opposite side
+    if (x < -size) x += (w + size);
+    if (x > w) x -= (w + size);
+    if (y < -size) y += (h + size);
+    if (y > h) y -= (h + size);
+
+    var zWave = 0.5 + 0.5 * Math.sin(2 * Math.PI * t / depthPeriod + depthPhase);
+    var scale = SCALE_FAR + (SCALE_NEAR - SCALE_FAR) * zWave;
+    var opacity = OPACITY_FAR + (OPACITY_NEAR - OPACITY_FAR) * zWave;
+
+    el.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) scale(' + scale.toFixed(3) + ')';
+    el.style.opacity = opacity.toFixed(3);
+
+    requestAnimationFrame(step);
+  }
+
+  if (reduceMotion){
+    el.style.transform = 'translate3d(' + (window.innerWidth/2 - size/2) + 'px,' + (window.innerHeight/2 - size/2) + 'px,0) scale(0.9)';
+    el.style.opacity = '0.04';
+  } else {
+    requestAnimationFrame(step);
+  }
+})();
+</script>
+
+</body>
+</html>

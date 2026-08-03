@@ -1,0 +1,101 @@
+name: ghostinc
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ghostinc}
+      POSTGRES_USER: ${POSTGRES_USER:-ghostinc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ghostinc_local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ghostinc} -d ${POSTGRES_DB:-ghostinc}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ghostinc}:${POSTGRES_PASSWORD:-ghostinc_local}@postgres:5432/${POSTGRES_DB:-ghostinc}
+      FRONTEND_ORIGIN: http://localhost:${FRONTEND_PORT:-3002}
+      PJUD_API_BASE_URL: ${PJUD_API_BASE_URL:-http://host.docker.internal:18080/api/v1}
+      PJUD_API_KEY: ${PJUD_API_KEY:-}
+      API_KEY_PEPPER: ${API_KEY_PEPPER:-local-development-pepper-change-me-now}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-service-token-change-me}
+      APP_BASE_URL: http://localhost:${FRONTEND_PORT:-3002}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      SESSION_ABSOLUTE_SECONDS: ${SESSION_ABSOLUTE_SECONDS:-28800}
+      SESSION_INACTIVITY_SECONDS: ${SESSION_INACTIVITY_SECONDS:-1800}
+      SESSION_ROTATION_SECONDS: ${SESSION_ROTATION_SECONDS:-900}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-4000}:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:4000/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:4000
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-local-internal-service-token-change-me}
+      APP_BASE_URL: http://localhost:${FRONTEND_PORT:-3002}
+      SESSION_ABSOLUTE_SECONDS: ${SESSION_ABSOLUTE_SECONDS:-28800}
+      NODE_OPTIONS: --dns-result-order=ipv4first --no-network-family-autoselection
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN:-}
+      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID:-}
+      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET:-}
+      AUTH0_SECRET: ${AUTH0_SECRET:-}
+      AUTH0_ROLES_CLAIM: ${AUTH0_ROLES_CLAIM:-https://ghostinc.cl/roles}
+      AUTH0_GOOGLE_CONNECTION: ${AUTH0_GOOGLE_CONNECTION:-google-oauth2}
+      AUTH0_DATABASE_CONNECTION: ${AUTH0_DATABASE_CONNECTION:-Username-Password-Authentication}
+      AUTH0_MANAGEMENT_CLIENT_ID: ${AUTH0_MANAGEMENT_CLIENT_ID:-}
+      AUTH0_MANAGEMENT_CLIENT_SECRET: ${AUTH0_MANAGEMENT_CLIENT_SECRET:-}
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3002}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  postgres-test:
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    environment:
+      POSTGRES_DB: ghostinc_test
+      POSTGRES_USER: ghostinc
+      POSTGRES_PASSWORD: ghostinc_test
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghostinc -d ghostinc_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
