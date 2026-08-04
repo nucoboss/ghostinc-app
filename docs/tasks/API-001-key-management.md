@@ -1,6 +1,6 @@
 # API-001: Ciclo de vida de API keys
 
-Estado: `BLOCKED`
+Estado: `READY`
 
 Dependencias: `IAM-002`, `SEC-002`.
 
