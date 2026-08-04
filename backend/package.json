@@ -33,6 +33,6 @@
     "@types/node": "latest",
     "@types/pg": "latest",
     "tsx": "latest",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   }
 }
