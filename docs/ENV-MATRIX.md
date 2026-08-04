@@ -28,6 +28,9 @@ Convenciones de origen:
 | `APP_BASE_URL` | No | todos | Host file (compose) | `config.ts` |
 | `RESEND_API_KEY` | Sí | prod (obligatorio) | Host file | `config.ts` |
 | `RESEND_FROM_EMAIL` | No | prod (obligatorio) | Host file | `config.ts` |
+| `TOTP_ENCRYPTION_KEY` | Sí | todos (real en prod) | Host file | `auth-crypto.ts` (IAM-007) |
+| `RECOVERY_CODE_PEPPER` | Sí | todos (real en prod) | Host file | `auth-mfa.ts` (IAM-007) |
+| `ADMIN_MFA_REAUTH_SECONDS` | No | todos | Código/Host file | `auth-sessions.ts` (IAM-007) |
 | `ADMIN_EMAIL` | Sensible | scripts | Invocación interactiva | `create-admin-invite.ts` |
 | `BOOTSTRAP_ORG_NAME` | No | scripts | Invocación interactiva | `bootstrap.ts` |
 | `BOOTSTRAP_CREDITS` | No | scripts | Invocación interactiva | `bootstrap.ts` |
@@ -41,15 +44,6 @@ Convenciones de origen:
 | `INTERNAL_SERVICE_TOKEN` | Sí | todos | Host file | BFF (`auth-backend.ts`, `admin-api.ts`) |
 | `APP_BASE_URL` | No | todos | Host file | `session.ts`, `csrf.ts` |
 | `SESSION_ABSOLUTE_SECONDS` | No | todos | Host file | `csrf.ts` |
-| `AUTH0_DOMAIN` | No | legacy dev/prod | Host file | `auth0.ts` (retirar en IAM-008) |
-| `AUTH0_CLIENT_ID` | No | legacy dev/prod | Host file | `auth0.ts` (retirar en IAM-008) |
-| `AUTH0_CLIENT_SECRET` | Sí | legacy dev/prod | Host file | `auth0.ts` (retirar en IAM-008) |
-| `AUTH0_SECRET` | Sí | legacy dev/prod | Host file | `auth0.ts` (retirar en IAM-008) |
-| `AUTH0_ROLES_CLAIM` | No | legacy dev/prod | Código | `admin-auth.ts` (retirar en IAM-008) |
-| `AUTH0_GOOGLE_CONNECTION` | No | legacy dev/prod | Código | (retirar en IAM-008) |
-| `AUTH0_DATABASE_CONNECTION` | No | legacy dev/prod | Código | (retirar en IAM-008) |
-| `AUTH0_MANAGEMENT_CLIENT_ID` | No | legacy dev/prod | Host file | `auth0-management.ts` (retirar en IAM-008) |
-| `AUTH0_MANAGEMENT_CLIENT_SECRET` | Sí | legacy dev/prod | Host file | `auth0-management.ts` (retirar en IAM-008) |
 
 ## Postgres y Caddy (contenedores `postgres` y `proxy`)
 
@@ -79,4 +73,4 @@ Convenciones de origen:
 - `.env.example` (raíz y backend) y `.env.production.example` contienen solo placeholders y se sincronizan manualmente con esta matriz.
 - CI recibe únicamente valores de prueba no sensibles (`ci-only-pepper...`, etc.); ningún secreto real entra al repositorio ni a los workflows.
 - El contenido de `.env.production` no se transporta en comandos SSH ni argumentos de procesos; se instala y rota por el canal definido en `docs/SECRETS-FLOW.md`.
-- Rotación de credenciales Auth0 (legacy) y Resend: ver responsables y procedimiento en `docs/SECRETS-FLOW.md`.
+- Rotación de credenciales Resend y demás secretos: ver responsables y procedimiento en `docs/SECRETS-FLOW.md`.

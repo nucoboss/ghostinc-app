@@ -6,6 +6,18 @@ const fetchMock = vi.fn<typeof fetch>();
 
 const APP_ORIGIN = "http://localhost:3002";
 
+function authenticatedUser(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "u-1",
+    email: "user@example.com",
+    globalRole: "user",
+    emailVerified: true,
+    authLevel: "full",
+    mfaVerifiedAt: null,
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   process.env.INTERNAL_SERVICE_TOKEN = "test-internal-token-with-at-least-32-chars!!";
@@ -78,8 +90,9 @@ describe("POST /api/auth/login", () => {
 
   it("configura la cookie opaca solo tras éxito", async () => {
     backendLoginResponse(200, {
+      status: "authenticated",
       token: "opaque-token-value",
-      user: { id: "u-1", email: "user@example.com", globalRole: "user", emailVerified: true },
+      user: authenticatedUser(),
     });
     const response = await POST(request({ email: "  User@Example.com ", password: "correct horse battery staple" }));
 
@@ -99,10 +112,31 @@ describe("POST /api/auth/login", () => {
     expect(setCookie).toContain("Max-Age=28800");
   });
 
+  it("guarda el challenge MFA en su propia cookie y no abre la sesión", async () => {
+    backendLoginResponse(200, {
+      status: "mfa_required",
+      token: "mfa-challenge-token",
+      user: authenticatedUser({ authLevel: "mfa" }),
+      mfaEnrollmentRequired: true,
+    });
+    const response = await POST(request({ email: "user@example.com", password: "correct horse battery staple" }));
+
+    expect(response.status).toBe(200);
+    expect((await response.json())).toMatchObject({
+      status: "mfa_required",
+      mfaEnrollmentRequired: true,
+    });
+
+    const setCookie = response.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain("ghostinc_mfa_challenge=mfa-challenge-token");
+    expect(setCookie).toContain("ghostinc_session=;");
+  });
+
   it("reenvía la IP confiable para separar el rate limit", async () => {
     backendLoginResponse(200, {
+      status: "authenticated",
       token: "opaque-token-value",
-      user: { id: "u-1", email: "user@example.com", globalRole: "user", emailVerified: true },
+      user: authenticatedUser(),
     });
     await POST(request(
       { email: "user@example.com", password: "correct horse battery staple" },
@@ -114,8 +148,9 @@ describe("POST /api/auth/login", () => {
 
   it("no deja el token en el cuerpo de la respuesta ni en la URL", async () => {
     backendLoginResponse(200, {
+      status: "authenticated",
       token: "opaque-token-value",
-      user: { id: "u-1", email: "user@example.com", globalRole: "user", emailVerified: true },
+      user: authenticatedUser(),
     });
     const response = await POST(request({ email: "user@example.com", password: "correct horse battery staple" }));
     const body = await response.json();

@@ -16,11 +16,23 @@ async function recordAuthEvent(
   eventType: string,
   userId: string,
   actorUserId?: string,
+  metadata: Record<string, unknown> = {},
 ) {
   await client.query(
-    "INSERT INTO auth_events (user_id, actor_user_id, event_type) VALUES ($1, $2, $3)",
-    [userId, actorUserId ?? null, eventType],
+    "INSERT INTO auth_events (user_id, actor_user_id, event_type, metadata) VALUES ($1, $2, $3, $4)",
+    [userId, actorUserId ?? null, eventType, JSON.stringify(metadata)],
   );
+}
+
+async function lockAdminMutation(client: PoolClient, actorUserId: string) {
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('ghostinc-admin-mutation'))");
+  const actor = await client.query<{ global_role: GlobalRole; blocked_at: Date | null }>(
+    "SELECT global_role, blocked_at FROM users WHERE id = $1 FOR UPDATE",
+    [actorUserId],
+  );
+  if (actor.rows[0]?.global_role !== "admin" || actor.rows[0].blocked_at) {
+    throw new Error("ADMIN_ACTOR_INVALID");
+  }
 }
 
 export async function setUserPassword(userId: string, password: string) {
@@ -53,13 +65,32 @@ export async function setUserBlocked(userId: string, blocked: boolean, actorUser
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query(
+    await lockAdminMutation(client, actorUserId);
+    if (userId === actorUserId) throw new Error("INVALID_SELF_ACTION");
+    const target = await client.query<{ global_role: GlobalRole; blocked_at: Date | null }>(
+      "SELECT global_role, blocked_at FROM users WHERE id = $1 FOR UPDATE",
+      [userId],
+    );
+    if (!target.rowCount) throw new Error("USER_NOT_FOUND");
+    if (blocked && target.rows[0]!.global_role === "admin" && !target.rows[0]!.blocked_at) {
+      const remaining = await client.query<{ count: string }>(
+        "SELECT count(*) FROM users WHERE global_role = 'admin' AND blocked_at IS NULL AND id <> $1",
+        [userId],
+      );
+      if (Number(remaining.rows[0]!.count) === 0) throw new Error("LAST_ACTIVE_ADMIN");
+    }
+    await client.query(
       "UPDATE users SET blocked_at = CASE WHEN $2 THEN now() ELSE NULL END WHERE id = $1",
       [userId, blocked],
     );
-    if (!result.rowCount) throw new Error("USER_NOT_FOUND");
     if (blocked) await revokeSessions(client, userId);
-    await recordAuthEvent(client, blocked ? "user_blocked" : "user_unblocked", userId, actorUserId);
+    await recordAuthEvent(
+      client,
+      blocked ? "user_blocked" : "user_unblocked",
+      userId,
+      actorUserId,
+      { previously_blocked: Boolean(target.rows[0]!.blocked_at), blocked },
+    );
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -73,13 +104,26 @@ export async function setUserRole(userId: string, role: GlobalRole, actorUserId:
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query(
-      "UPDATE users SET global_role = $2 WHERE id = $1",
-      [userId, role],
+    await lockAdminMutation(client, actorUserId);
+    if (userId === actorUserId) throw new Error("INVALID_SELF_ACTION");
+    const target = await client.query<{ global_role: GlobalRole }>(
+      "SELECT global_role FROM users WHERE id = $1 FOR UPDATE",
+      [userId],
     );
-    if (!result.rowCount) throw new Error("USER_NOT_FOUND");
+    if (!target.rowCount) throw new Error("USER_NOT_FOUND");
+    if (target.rows[0]!.global_role === "admin" && role === "user") {
+      const remaining = await client.query<{ count: string }>(
+        "SELECT count(*) FROM users WHERE global_role = 'admin' AND blocked_at IS NULL AND id <> $1",
+        [userId],
+      );
+      if (Number(remaining.rows[0]!.count) === 0) throw new Error("LAST_ACTIVE_ADMIN");
+    }
+    await client.query("UPDATE users SET global_role = $2 WHERE id = $1", [userId, role]);
     await revokeSessions(client, userId);
-    await recordAuthEvent(client, "role_changed", userId, actorUserId);
+    await recordAuthEvent(client, "role_changed", userId, actorUserId, {
+      previous_role: target.rows[0]!.global_role,
+      role,
+    });
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");

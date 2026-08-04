@@ -14,6 +14,8 @@
     "bootstrap:prod": "node dist/scripts/bootstrap.js",
     "bootstrap:admin": "tsx src/scripts/create-admin-invite.ts",
     "bootstrap:admin:prod": "node dist/scripts/create-admin-invite.js",
+    "admin:reset-mfa": "tsx src/scripts/reset-admin-mfa.ts",
+    "admin:reset-mfa:prod": "node dist/scripts/reset-admin-mfa.js",
     "test": "tsx --test --test-concurrency=1 test/*.test.ts"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "argon2": "^0.45.1",
     "dotenv": "latest",
     "fastify": "latest",
+    "otpauth": "^9.5.1",
     "pg": "latest",
     "zod": "latest"
   },

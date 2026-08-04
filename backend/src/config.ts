@@ -9,6 +9,7 @@ const optionalEmail = z.preprocess(
   (value) => value === "" ? undefined : value,
   z.string().email().optional(),
 );
+const hexString = (length: number) => z.string().regex(new RegExp(`^[0-9a-fA-F]{${length}}$`));
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -26,6 +27,9 @@ const schema = z.object({
   APP_BASE_URL: z.string().url().default("http://localhost:3002"),
   RESEND_API_KEY: optionalNonEmptyString,
   RESEND_FROM_EMAIL: optionalEmail,
+  TOTP_ENCRYPTION_KEY: hexString(64).default("deadbeef".repeat(8)),
+  RECOVERY_CODE_PEPPER: z.string().min(32).default("local-recovery-code-pepper-change-me-now"),
+  ADMIN_MFA_REAUTH_SECONDS: z.coerce.number().int().positive().max(604_800).default(1_800),
 })
   .refine(
     (env) => env.NODE_ENV !== "production" || Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL),
@@ -34,6 +38,14 @@ const schema = z.object({
   .refine(
     (env) => Boolean(env.RESEND_API_KEY) === Boolean(env.RESEND_FROM_EMAIL),
     { message: "RESEND_API_KEY y RESEND_FROM_EMAIL deben configurarse juntos." },
+  )
+  .refine(
+    (env) => env.NODE_ENV !== "production" || !env.TOTP_ENCRYPTION_KEY.startsWith("deadbeef"),
+    { message: "TOTP_ENCRYPTION_KEY debe ser un secreto real de 64 caracteres hexadecimales en producción." },
+  )
+  .refine(
+    (env) => env.NODE_ENV !== "production" || !env.RECOVERY_CODE_PEPPER.startsWith("local-"),
+    { message: "RECOVERY_CODE_PEPPER debe ser un secreto real en producción." },
   );
 
 const env = schema.parse(process.env);
@@ -51,6 +63,9 @@ export const config = {
   appBaseUrl: env.APP_BASE_URL.replace(/\/$/, ""),
   resendApiKey: env.RESEND_API_KEY,
   resendFromEmail: env.RESEND_FROM_EMAIL,
+  totpEncryptionKey: Buffer.from(env.TOTP_ENCRYPTION_KEY, "hex"),
+  recoveryCodePepper: env.RECOVERY_CODE_PEPPER,
+  adminMfaReauthSeconds: env.ADMIN_MFA_REAUTH_SECONDS,
   sessionPolicy: {
     absoluteSeconds: env.SESSION_ABSOLUTE_SECONDS,
     inactivitySeconds: env.SESSION_INACTIVITY_SECONDS,

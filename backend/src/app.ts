@@ -8,6 +8,7 @@ import { db } from "./db.js";
 import { authRoutes } from "./routes/auth.js";
 import { causasRoutes } from "./routes/causas.js";
 import { adminRoutes } from "./routes/admin.js";
+import { mfaRoutes } from "./routes/mfa.js";
 import { errorResponseSchema } from "./schemas/causas.js";
 
 export async function buildApp() {
@@ -28,6 +29,21 @@ export async function buildApp() {
   });
 
   app.addSchema({ $id: "error", ...errorResponseSchema });
+
+  app.addSchema({
+    $id: "user",
+    type: "object",
+    additionalProperties: false,
+    required: ["id", "email", "globalRole", "emailVerified", "authLevel", "mfaVerifiedAt"],
+    properties: {
+      id: { type: "string" },
+      email: { type: "string" },
+      globalRole: { type: "string", enum: ["user", "admin"] },
+      emailVerified: { type: "boolean" },
+      authLevel: { type: "string", enum: ["password", "mfa", "full"] },
+      mfaVerifiedAt: { type: ["string", "null"] },
+    },
+  });
 
   app.setNotFoundHandler((_request, reply) => {
     return reply.code(404).send({ error: "not_found", message: "Recurso no encontrado." });
@@ -92,6 +108,7 @@ export async function buildApp() {
 
   await app.register(causasRoutes);
   await app.register(authRoutes, { prefix: "/internal/auth" });
+  await app.register(mfaRoutes, { prefix: "/internal/auth/mfa" });
   await app.register(adminRoutes, { prefix: "/internal/admin" });
   app.addHook("onClose", async () => db.end());
   return app;

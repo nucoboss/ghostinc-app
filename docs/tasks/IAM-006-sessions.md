@@ -41,7 +41,7 @@ Dependencia: `IAM-004`.
 ### Retiro de Auth0
 
 - Eliminados `src/proxy.ts` (middleware Auth0), `account-security.tsx` y usos de `auth0!.getSession()` en layouts, dashboard y admin.
-- La dependencia y rutas de cuenta Auth0 (`api/account/totp`, `password-reset`, `authentication-methods`) se conservan hasta el cutover `IAM-008`, tal como exige la decisión del 2026-08-03.
+- La dependencia y rutas de cuenta Auth0 se conservaron temporalmente; `IAM-008` las retiró después de validar el reemplazo nativo.
 
 ## Verificación ejecutada
 

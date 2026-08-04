@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-for (const key of ["AUTH0_DOMAIN", "AUTH0_CLIENT_ID", "AUTH0_CLIENT_SECRET", "AUTH0_SECRET"]) {
-  process.env[key] = "";
-}
-
 vi.mock("next/navigation", async (importOriginal) => {
   const original = await importOriginal<typeof import("next/navigation")>();
   return {

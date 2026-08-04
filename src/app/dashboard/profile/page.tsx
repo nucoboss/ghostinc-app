@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TotpSettings } from "@/components/totp-settings";
 import { getCurrentSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Mi cuenta | Ghostinc" };
@@ -23,7 +24,7 @@ export default async function ProfilePage() {
       <section className="dashboard-card account-security-card">
         <div className="card-head"><div><span className="section-tag">Seguridad</span><h2>Métodos de acceso</h2></div></div>
         <div className="key-summary"><span className="key-icon">P</span><div><strong>Contraseña</strong><code>Argon2id</code></div><small>Protegida</small></div>
-        <p className="placeholder-notice">La verificación en dos pasos (TOTP) y los códigos de recuperación estarán disponibles próximamente.</p>
+        <TotpSettings isAdmin={isAdmin} />
       </section>
 
       <div className="account-links-grid">

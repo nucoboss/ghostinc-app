@@ -23,12 +23,12 @@ Controles presentes:
 
 Brechas conocidas:
 
-- La autenticación propia cubre identidad local, alta/recuperación por correo, login, sesiones opacas con límites/rotación/revocación y administración local (`IAM-004`, `IAM-005`, `IAM-006`); falta TOTP (`IAM-007`) antes del cutover completo.
+- La autenticación propia cubre identidad local, alta/recuperación por correo, login, sesiones opacas con límites/rotación/revocación, administración local y TOTP con recovery codes. Auth0 fue retirado del runtime en `IAM-008`.
 - No existe todavía aislamiento por cuenta individual en endpoints de portal.
 - La búsqueda gratuita y la API comercial de causas tienen esquemas estrictos; falta extender el control a futuras rutas de cuenta y billing.
 - No hay suite de pruebas automatizadas de seguridad.
 - No hay threat model ni inventario formal de datos.
-- Los secretos aún se entregan como variables de entorno; la nueva autenticación requerirá además clave de cifrado TOTP y peppers independientes.
+- Los secretos aún se entregan como variables de entorno, incluida la clave de cifrado TOTP y peppers independientes; falta completar su entrega desde el mecanismo operativo definido para cada ambiente.
 - CI usa acciones por tag y no por SHA inmutable.
 - No hay SAST, DAST, escaneo de imágenes, SBOM ni firma de artefactos.
 - No hay monitoreo centralizado ni procedimiento de incidentes.

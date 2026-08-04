@@ -1,6 +1,6 @@
 # IAM-002: Sincronización y aislamiento de cuentas individuales
 
-Estado: `BLOCKED`
+Estado: `READY`
 
 Dependencias: `IAM-008`, `SEC-001`.
 

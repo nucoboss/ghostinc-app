@@ -1,8 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
 import { hasInternalAccess } from "../lib/internal-auth.js";
-import { checkSession } from "../services/auth-sessions.js";
+import { checkSession, sessionHasRecentMfa } from "../services/auth-sessions.js";
 import { setUserBlocked, setUserRole } from "../services/auth-store.js";
+import { issueAuthToken } from "../services/auth-tokens.js";
+import { config } from "../config.js";
+import { sendAuthEmail } from "../services/email.js";
 
 const userIdParamsSchema = {
   type: "object",
@@ -22,10 +25,20 @@ const adminActionBodySchema = {
   },
 } as const;
 
+const adminInviteBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["token", "email"],
+  properties: {
+    token: { type: "string", minLength: 1, maxLength: 128 },
+    email: { type: "string", minLength: 3, maxLength: 254, pattern: "^[^\\s@]+@[^\\s@]+$" },
+  },
+} as const;
+
 async function requireAdminActor(body: { token: string }) {
   const session = await checkSession(body.token);
-  if (session.kind !== "ok" || session.user.globalRole !== "admin") {
-    const error = new Error("ADMIN_ACTOR_REQUIRED") as Error & { statusCode: number };
+  if (session.kind !== "ok" || session.user.globalRole !== "admin" || !sessionHasRecentMfa(session.user)) {
+    const error = new Error("ADMIN_ACTOR_MFA_REQUIRED") as Error & { statusCode: number };
     error.statusCode = 403;
     throw error;
   }
@@ -60,8 +73,7 @@ export async function adminRoutes(app: FastifyInstance) {
               (SELECT count(*)::int FROM auth_sessions s
                WHERE s.user_id = u.id AND s.revoked_at IS NULL AND s.expires_at > now()) AS active_sessions
        FROM users u
-       ORDER BY u.created_at DESC
-       LIMIT 100`,
+       ORDER BY u.created_at DESC`,
     );
     return {
       data: {
@@ -80,23 +92,62 @@ export async function adminRoutes(app: FastifyInstance) {
     };
   });
 
+  app.post("/users/invite", {
+    schema: {
+      body: adminInviteBodySchema,
+      response: {
+        403: { $ref: "error" },
+        409: { $ref: "error" },
+      },
+    },
+  }, async (request, reply) => {
+    const body = request.body as { token: string; email: string };
+    const actor = await requireAdminActor(body);
+    const issued = await issueAuthToken(body.email, "registration", actor.id);
+    if (!issued) {
+      return reply.code(409).send({
+        error: "account_already_active",
+        message: "La cuenta ya está activa, bloqueada o no puede recibir una invitación.",
+      });
+    }
+    const link = new URL("/crear-contrasena", config.appBaseUrl);
+    link.hash = new URLSearchParams({ token: issued.token, mode: "registration" }).toString();
+    await sendAuthEmail({
+      to: issued.email,
+      link: link.toString(),
+      expiredAt: issued.expiresAt,
+      kind: "registration",
+    });
+    return { ok: true };
+  });
+
   app.post<{ Params: { id: string } }>("/users/:id/block", {
     schema: {
       params: userIdParamsSchema,
       body: adminActionBodySchema,
       response: {
+        400: { $ref: "error" },
         403: { $ref: "error" },
         404: { $ref: "error" },
       },
     },
   }, async (request, reply) => {
     const actor = await requireAdminActor(request.body as { token: string });
+    if (actor.id === request.params.id) {
+      return reply.code(400).send({ error: "invalid_action", message: "No puedes bloquear tu propia cuenta." });
+    }
     try {
       await setUserBlocked(request.params.id, true, actor.id);
       return { ok: true };
     } catch (error) {
       if (error instanceof Error && error.message === "USER_NOT_FOUND") {
         return reply.code(404).send({ error: "not_found", message: "Usuario no encontrado." });
+      }
+      if (error instanceof Error && ["INVALID_SELF_ACTION", "LAST_ACTIVE_ADMIN"].includes(error.message)) {
+        return reply.code(400).send({ error: "invalid_action", message: "La acción dejaría la administración en un estado no válido." });
+      }
+      if (error instanceof Error && error.message === "ADMIN_ACTOR_INVALID") {
+        return reply.code(403).send({ error: "forbidden", message: "La sesión administrativa ya no es válida." });
       }
       throw error;
     }
@@ -107,18 +158,28 @@ export async function adminRoutes(app: FastifyInstance) {
       params: userIdParamsSchema,
       body: adminActionBodySchema,
       response: {
+        400: { $ref: "error" },
         403: { $ref: "error" },
         404: { $ref: "error" },
       },
     },
   }, async (request, reply) => {
     const actor = await requireAdminActor(request.body as { token: string });
+    if (actor.id === request.params.id) {
+      return reply.code(400).send({ error: "invalid_action", message: "No puedes desbloquear tu propia cuenta." });
+    }
     try {
       await setUserBlocked(request.params.id, false, actor.id);
       return { ok: true };
     } catch (error) {
       if (error instanceof Error && error.message === "USER_NOT_FOUND") {
         return reply.code(404).send({ error: "not_found", message: "Usuario no encontrado." });
+      }
+      if (error instanceof Error && ["INVALID_SELF_ACTION", "LAST_ACTIVE_ADMIN"].includes(error.message)) {
+        return reply.code(400).send({ error: "invalid_action", message: "La acción dejaría la administración en un estado no válido." });
+      }
+      if (error instanceof Error && error.message === "ADMIN_ACTOR_INVALID") {
+        return reply.code(403).send({ error: "forbidden", message: "La sesión administrativa ya no es válida." });
       }
       throw error;
     }
@@ -153,6 +214,12 @@ export async function adminRoutes(app: FastifyInstance) {
     } catch (error) {
       if (error instanceof Error && error.message === "USER_NOT_FOUND") {
         return reply.code(404).send({ error: "not_found", message: "Usuario no encontrado." });
+      }
+      if (error instanceof Error && ["INVALID_SELF_ACTION", "LAST_ACTIVE_ADMIN"].includes(error.message)) {
+        return reply.code(400).send({ error: "invalid_action", message: "La acción dejaría la administración en un estado no válido." });
+      }
+      if (error instanceof Error && error.message === "ADMIN_ACTOR_INVALID") {
+        return reply.code(403).send({ error: "forbidden", message: "La sesión administrativa ya no es válida." });
       }
       throw error;
     }

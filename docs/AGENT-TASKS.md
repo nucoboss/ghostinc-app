@@ -35,9 +35,9 @@ Decisión de producto (2026-08-01): el MVP consulta PJUD por RUT o razón social
 | 7 | IAM-004 | DONE | [Identidad local y primitivas criptográficas](tasks/IAM-004-local-identity.md) | IAM-003 |
 | 8 | IAM-005 | DONE | [Registro y recuperación por correo](tasks/IAM-005-email-auth.md) | IAM-004; cuenta y dominio remitente Resend |
 | 9 | IAM-006 | DONE | [Login, sesiones y BFF](tasks/IAM-006-sessions.md) | IAM-004 |
-| 10 | IAM-007 | BLOCKED | [TOTP y códigos de recuperación](tasks/IAM-007-totp.md) | IAM-006, SEC-004 |
-| 11 | IAM-008 | BLOCKED | [Administración local y retiro de Auth0](tasks/IAM-008-auth0-cutover.md) | IAM-005, IAM-006, IAM-007 |
-| 12 | IAM-002 | BLOCKED | [Sincronización y aislamiento de cuentas](tasks/IAM-002-multitenancy.md) | IAM-008, SEC-001 |
+| 10 | IAM-007 | DONE | [TOTP y códigos de recuperación](tasks/IAM-007-totp.md) | IAM-006, SEC-004 |
+| 11 | IAM-008 | DONE | [Administración local y retiro de Auth0](tasks/IAM-008-auth0-cutover.md) | IAM-005, IAM-006, IAM-007 |
+| 12 | IAM-002 | READY | [Sincronización y aislamiento de cuentas](tasks/IAM-002-multitenancy.md) | IAM-008, SEC-001 |
 | 13 | API-001 | BLOCKED | [Ciclo de vida de API keys](tasks/API-001-key-management.md) | IAM-002, SEC-002 |
 | 14 | APP-001 | BLOCKED | [Dashboard con datos reales](tasks/APP-001-real-dashboard.md) | IAM-002, API-001 |
 | 15 | APP-002 | BLOCKED | [Estabilización del frontend](tasks/APP-002-frontend-stabilization.md) | APP-001 |

@@ -7,10 +7,10 @@ import "./helpers/setup.js";
 const { db } = await import("../src/db.js");
 const { setUserBlocked, setUserPassword, setUserRole } = await import("../src/services/auth-store.js");
 
-async function seedUserWithSession(email: string) {
+async function seedUserWithSession(email: string, role: "user" | "admin" = "user") {
   const user = await db.query<{ id: string }>(
-    "INSERT INTO users (email) VALUES ($1) RETURNING id",
-    [email],
+    "INSERT INTO users (email, global_role) VALUES ($1, $2) RETURNING id",
+    [email, role],
   );
   await db.query(
     "INSERT INTO auth_sessions (user_id, token_hash, auth_level, expires_at) VALUES ($1, $2, 'full', now() + interval '1 hour')",
@@ -88,7 +88,7 @@ describe("local identity schema", () => {
   });
 
   it("bloquear un usuario revoca sesiones y registra auditoría", async () => {
-    const actorId = await seedUserWithSession("actor@example.com");
+    const actorId = await seedUserWithSession("actor@example.com", "admin");
     const userId = await seedUserWithSession("blocked@example.com");
     await setUserBlocked(userId, true, actorId);
     const user = await db.query<{ blocked_at: Date | null }>("SELECT blocked_at FROM users WHERE id = $1", [userId]);
@@ -106,7 +106,7 @@ describe("local identity schema", () => {
   });
 
   it("cambiar rol revoca sesiones y registra auditoría", async () => {
-    const actorId = await seedUserWithSession("actor@example.com");
+    const actorId = await seedUserWithSession("actor@example.com", "admin");
     const userId = await seedUserWithSession("promoted@example.com");
     await setUserRole(userId, "admin", actorId);
     const user = await db.query<{ global_role: string }>("SELECT global_role FROM users WHERE id = $1", [userId]);

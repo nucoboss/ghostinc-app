@@ -135,4 +135,4 @@ Riesgos adicionales: replay de enlaces/TOTP, fijación de sesión, CSRF, dominio
 
 ## Corte de Auth0
 
-Auth0 permanece funcional durante `IAM-004` a `IAM-007`. `IAM-008` invita a las cuentas necesarias, valida login/MFA/bloqueo/recuperación, retira SDK y variables Auth0 y deja exactamente un sistema activo. No se sincronizan privilegios por coincidencia de email.
+`IAM-008` retiró el SDK, rutas y variables Auth0. Fastify es la única autoridad de identidad y no se sincronizan cuentas ni privilegios por coincidencia de email. El inventario, invitación, validación y rollback se describen en `AUTH-CUTOVER.md`.

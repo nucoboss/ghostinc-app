@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import { listAdminUsers } from "@/lib/admin-users";
-import { changeUserRole, toggleUserBlocked } from "./actions";
+import { changeUserRole, inviteUser, toggleUserBlocked } from "./actions";
 import { getSessionToken } from "@/lib/session";
 
 function formatDate(value?: string | null) {
@@ -27,6 +27,13 @@ export default async function AdminUsersPage() {
   return (
     <main className="admin-content">
       <div className="admin-title"><div><span className="section-tag">Identidad</span><h1>Usuarios</h1><p>{users.length} identidades registradas localmente.</p></div></div>
+      <section className="admin-card">
+        <div className="card-head"><div><span className="section-tag">Invitación</span><h2>Invitar cuenta</h2></div></div>
+        <form className="account-form" action={inviteUser}>
+          <label><span>Correo</span><input type="email" name="email" required maxLength={254} /></label>
+          <button type="submit">Enviar invitación</button>
+        </form>
+      </section>
       <section className="admin-card admin-users">
         <div className="admin-users-head"><span>Usuario</span><span>Verificación</span><span>Sesiones</span><span>Último acceso</span><span>Rol</span><span>Estado</span><span>Acciones</span></div>
         {users.map((user) => (
@@ -38,11 +45,13 @@ export default async function AdminUsersPage() {
             <span>{user.global_role === "admin" ? "Admin" : "Usuario"}</span>
             <span className={user.blocked_at ? "admin-status error" : "admin-status"}>{user.blocked_at ? "Bloqueado" : "Activo"}</span>
             <div className="admin-user-actions">
-              <form action={toggleUserBlocked}>
-                <input type="hidden" name="userId" value={user.id} />
-                <input type="hidden" name="blocked" value={String(!user.blocked_at)} />
-                <button type="submit">{user.blocked_at ? "Desbloquear" : "Bloquear"}</button>
-              </form>
+              {user.id !== admin.id && (
+                <form action={toggleUserBlocked}>
+                  <input type="hidden" name="userId" value={user.id} />
+                  <input type="hidden" name="blocked" value={String(!user.blocked_at)} />
+                  <button type="submit">{user.blocked_at ? "Desbloquear" : "Bloquear"}</button>
+                </form>
+              )}
               {user.id !== admin.id && (
                 <form action={changeUserRole}>
                   <input type="hidden" name="userId" value={user.id} />

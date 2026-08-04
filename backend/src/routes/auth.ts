@@ -91,6 +91,17 @@ export async function authRoutes(app: FastifyInstance) {
     schema: {
       body: loginBodySchema,
       response: {
+        200: {
+          type: "object",
+          additionalProperties: false,
+          required: ["status", "token", "user"],
+          properties: {
+            status: { type: "string", enum: ["authenticated", "mfa_required"] },
+            token: { type: "string" },
+            user: { $ref: "user" },
+            mfaEnrollmentRequired: { type: "boolean" },
+          },
+        },
         400: { $ref: "error" },
         401: { $ref: "error" },
         429: { $ref: "error" },
@@ -100,7 +111,15 @@ export async function authRoutes(app: FastifyInstance) {
     const body = request.body as { email: string; password: string };
     try {
       const result = await loginUser(body.email, body.password);
-      return result;
+      if (result.kind === "mfa_required") {
+        return reply.code(200).send({
+          status: "mfa_required",
+          token: result.token,
+          user: result.user,
+          mfaEnrollmentRequired: result.mfaEnrollmentRequired,
+        });
+      }
+      return { status: "authenticated", token: result.token, user: result.user };
     } catch (error) {
       if (error instanceof LoginFailedError) {
         return reply.code(401).send({ error: "invalid_credentials", message: "Credenciales inválidas." });

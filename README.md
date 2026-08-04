@@ -14,7 +14,7 @@ Ghostinc consulta información pública asociada a empresas chilenas. La API com
 - Pipeline CI/CD preparado para GitHub, GHCR y una VM en OCI.
 - Caddy preparado como único punto público detrás de Cloudflare.
 
-Auth0, MFA TOTP, perfil de seguridad y panel administrativo están implementados, pero cada ambiente requiere configurar el tenant, Actions, My Account API y el primer rol `admin`. La emisión web de API keys y la integración de Mercado Pago Chile todavía están pendientes.
+La autenticación nativa con contraseñas Argon2id, sesiones opacas, MFA TOTP, recuperación y administración local está implementada. La emisión web de API keys y la integración de Mercado Pago Chile todavía están pendientes.
 
 ## Inicio rápido
 
@@ -79,7 +79,8 @@ npm run build
 - [Docker y operación](docs/DOCKER.md)
 - [Backlog y pendientes](docs/BACKLOG.md)
 - [Cola de tareas para agentes](docs/AGENT-TASKS.md)
-- [Autenticación y administración con Auth0](docs/AUTH0.md)
+- [Autenticación nativa](docs/AUTH-NATIVE.md)
+- [Corte y migración de identidad](docs/AUTH-CUTOVER.md)
 - [Pagos con Mercado Pago Checkout Pro](docs/MERCADO-PAGO.md)
 - [Programa de seguridad OWASP SAMM](docs/SECURITY-ROADMAP.md)
 - [Despliegue OCI y Cloudflare](deploy/README.md)

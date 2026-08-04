@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 export const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-id" : "ghostinc_session";
+export const MFA_CHALLENGE_COOKIE = process.env.NODE_ENV === "production" ? "__Host-mfa" : "ghostinc_mfa_challenge";
 export const SESSION_ABSOLUTE_SECONDS = Number(process.env.SESSION_ABSOLUTE_SECONDS ?? 28_800);
 
 function appOrigin(): string | null {

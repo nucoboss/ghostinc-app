@@ -12,6 +12,47 @@ export class TokenError extends Error {
   }
 }
 
+export async function createInitialAdminInvite(email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  const { token, tokenHash } = generateOpaqueToken();
+  const expiresAt = new Date(Date.now() + TOKEN_LIFETIME_MS);
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('ghostinc-initial-admin'))");
+    const existingAdmin = await client.query(
+      "SELECT 1 FROM users WHERE global_role = 'admin' LIMIT 1",
+    );
+    if (existingAdmin.rowCount) throw new TokenError("ADMIN_ALREADY_EXISTS");
+    const existingIdentity = await client.query(
+      "SELECT 1 FROM users WHERE lower(email) = lower($1) LIMIT 1",
+      [normalizedEmail],
+    );
+    if (existingIdentity.rowCount) throw new TokenError("IDENTITY_ALREADY_EXISTS");
+
+    const user = await client.query<{ id: string }>(
+      "INSERT INTO users (email, global_role) VALUES ($1, 'admin') RETURNING id",
+      [normalizedEmail],
+    );
+    const userId = user.rows[0]!.id;
+    await client.query(
+      "INSERT INTO auth_tokens (user_id, purpose, token_hash, expires_at) VALUES ($1, 'registration', $2, $3)",
+      [userId, tokenHash, expiresAt],
+    );
+    await client.query(
+      "INSERT INTO auth_events (user_id, event_type) VALUES ($1, 'admin_invitation_created')",
+      [userId],
+    );
+    await client.query("COMMIT");
+    return { token, userId, expiresAt, email: normalizedEmail };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function userByIdentity(email: string) {
   const result = await db.query<{
     id: string;
@@ -24,7 +65,7 @@ async function userByIdentity(email: string) {
   return result.rows[0];
 }
 
-export async function issueAuthToken(email: string, purpose: TokenPurpose) {
+export async function issueAuthToken(email: string, purpose: TokenPurpose, actorUserId?: string) {
   const user = await userByIdentity(email);
 
   if (purpose === "password_reset" && !user?.password_hash) return null;
@@ -51,8 +92,16 @@ export async function issueAuthToken(email: string, purpose: TokenPurpose) {
       [userId, purpose, tokenHash, expiresAt],
     );
     await client.query(
-      "INSERT INTO auth_events (user_id, event_type) VALUES ($1, $2)",
-      [userId, purpose === "registration" ? "registration_requested" : "password_reset_requested"],
+      "INSERT INTO auth_events (user_id, actor_user_id, event_type) VALUES ($1, $2, $3)",
+      [
+        userId,
+        actorUserId ?? null,
+        actorUserId && purpose === "registration"
+          ? "admin_invitation_created"
+          : purpose === "registration"
+            ? "registration_requested"
+            : "password_reset_requested",
+      ],
     );
     await client.query("COMMIT");
     return { token, userId, expiresAt, email: normalizeEmail(email) };

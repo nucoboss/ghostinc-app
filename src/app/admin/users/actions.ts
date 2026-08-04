@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdmin } from "@/lib/admin-auth";
 import { SESSION_COOKIE } from "@/lib/csrf";
-import { adminUserAction } from "@/lib/admin-users";
+import { adminUserAction, inviteAdminUser } from "@/lib/admin-users";
 
 function sessionToken() {
   return cookies().then((store) => store.get(SESSION_COOKIE)?.value);
@@ -34,5 +34,17 @@ export async function changeUserRole(formData: FormData) {
   const token = await sessionToken();
   if (!token) throw new Error("SESSION_REQUIRED");
   await adminUserAction("role", userId, token, role);
+  revalidatePath("/admin/users");
+}
+
+export async function inviteUser(formData: FormData) {
+  await requireAdmin("/admin/users");
+  const email = formData.get("email");
+  if (typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+$/.test(email)) {
+    throw new Error("Invalid email.");
+  }
+  const token = await sessionToken();
+  if (!token) throw new Error("SESSION_REQUIRED");
+  await inviteAdminUser(email, token);
   revalidatePath("/admin/users");
 }

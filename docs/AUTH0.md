@@ -1,6 +1,6 @@
 # Auth0: autenticación, MFA y administración
 
-> **Documento histórico.** La decisión del 2026-08-03 reemplaza Auth0 por autenticación propia mediante `IAM-003` a `IAM-008`. Mantener este flujo operativo solo hasta completar `IAM-008`; no continuar sus pendientes ni usarlo como arquitectura objetivo.
+> **Documento histórico retirado.** Auth0 fue reemplazado por autenticación propia mediante `IAM-003` a `IAM-008`. No usar este documento como guía operativa ni reactivar sus rutas, aplicaciones o secretos.
 
 Auth0 Universal Login gestiona el registro con Google, login, MFA y sesiones. Ghostinc no recibe ni almacena contraseñas ni secretos TOTP.
 

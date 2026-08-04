@@ -55,3 +55,10 @@ export async function adminUserAction(action: "block" | "unblock" | "role", user
     body: JSON.stringify(body),
   });
 }
+
+export async function inviteAdminUser(email: string, sessionToken: string) {
+  await adminRequest<{ ok: boolean }>("/internal/admin/users/invite", sessionToken, {
+    method: "POST",
+    body: JSON.stringify({ token: sessionToken, email }),
+  });
+}

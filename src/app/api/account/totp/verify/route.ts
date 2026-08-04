@@ -1,20 +1,31 @@
-import { NextResponse } from "next/server";
-import { auth0 } from "@/lib/auth0";
-import { myAccountRequest } from "@/lib/my-account";
+import { NextRequest, NextResponse } from "next/server";
+import { BackendAuthError, backendMfaConfirm } from "@/lib/auth-backend";
+import { MFA_CHALLENGE_COOKIE, SESSION_COOKIE, isSameOriginRequest } from "@/lib/csrf";
+import { clientIp } from "@/lib/client-ip";
 
-export async function POST(request: Request) {
-  if (!await auth0?.getSession()) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
-  const body = await request.json().catch(() => null) as { id?: unknown; authSession?: unknown; otpCode?: unknown } | null;
-  if (!body || typeof body.id !== "string" || typeof body.authSession !== "string" || typeof body.otpCode !== "string" || !/^\d{6}$/.test(body.otpCode)) {
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Solicitud no válida." }, { status: 403 });
+  }
+  const sessionToken = request.cookies.get(MFA_CHALLENGE_COOKIE)?.value
+    ?? request.cookies.get(SESSION_COOKIE)?.value;
+  if (!sessionToken) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+  const body = await request.json().catch(() => null) as { code?: unknown } | null;
+  const code = typeof body?.code === "string" ? body.code : "";
+  if (!/^\d{6}$/.test(code)) {
     return NextResponse.json({ error: "INVALID_REQUEST" }, { status: 400 });
   }
   try {
-    await myAccountRequest(`/authentication-methods/${encodeURIComponent(body.id)}/verify`, {
-      method: "POST",
-      body: JSON.stringify({ auth_session: body.authSession, otp_code: body.otpCode }),
-    });
-    return NextResponse.json({ verified: true });
-  } catch {
-    return NextResponse.json({ error: "INVALID_OTP" }, { status: 400 });
+    const result = await backendMfaConfirm(sessionToken, code, clientIp(request));
+    return NextResponse.json({ verified: true, recoveryCodes: result.recoveryCodes });
+  } catch (error) {
+    if (error instanceof BackendAuthError && error.status === 400) {
+      return NextResponse.json({ error: "INVALID_OTP" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "TOTP_CONFIRMATION_FAILED" }, { status: 502 });
   }
 }

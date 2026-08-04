@@ -17,6 +17,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await backendCheckSession(token, true);
+    if (result.user.authLevel === "mfa") {
+      const response = NextResponse.json({ error: "mfa_required" }, { status: 401 });
+      response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions(), maxAge: 0 });
+      return response;
+    }
     const response = NextResponse.json({ user: result.user });
     if (result.token) {
       response.cookies.set(SESSION_COOKIE, result.token, sessionCookieOptions(SESSION_ABSOLUTE_SECONDS));

@@ -45,7 +45,6 @@ El contenedor backend ejecuta como `node` sobre filesystem de solo lectura con `
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Dev | Al rotar en Resend | Renovar en panel Resend, actualizar `.env.production`, recrear backend | Valor anterior sigue válido en Resend hasta revocarlo allí |
 | `POSTGRES_PASSWORD` | DevSec | Anual o compromiso | `ALTER USER` en contenedor PostgreSQL, actualizar `.env.production` y `DATABASE_URL` del backend, recrear | Restaurar contraseña anterior y `DATABASE_URL` |
 | `PJUD_API_KEY` | Dev | Al rotar en PJUD | Actualizar `.env.production`, recrear backend | Valor anterior si PJUD lo acepta en ventana |
-| `AUTH0_*` (legacy) | Dueño Auth0 | Retirar con IAM-008 | No rotar; eliminar en `IAM-008` | N/A (reemplazado por nativa) |
 
 Cada rotación ejecuta:
 
@@ -63,7 +62,7 @@ Tras rotar un secreto **no crítico** en staging (pendiente `OPS-002`), se demue
 
 - Tokens de acceso de proveedores: revocación en el panel del proveedor (Resend), no solo en `.env`.
 - Claves SSH de despliegue: revocar eliminando la clave del Environment, surtir nueva en el host.
-- Sesiones/apps: para pérdida de `INTERNAL_SERVICE_TOKEN` se rota; en Auth0 se revoca el flujo recibiendo login fallido.
+- Sesiones internas: ante pérdida de `INTERNAL_SERVICE_TOKEN`, rotarlo en frontend y backend de forma coordinada.
 
 ## Controles contra fugas
 

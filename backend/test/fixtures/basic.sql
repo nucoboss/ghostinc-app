@@ -6,9 +6,9 @@ INSERT INTO organizations (name, credit_balance) VALUES
   ('Org Fixture A', 10),
   ('Org Fixture B', 0);
 
-INSERT INTO users (email, external_auth_id) VALUES
-  ('fixture-a@example.test', 'auth0|fixture-a'),
-  ('fixture-b@example.test', 'auth0|fixture-b');
+INSERT INTO users (email) VALUES
+  ('fixture-a@example.test'),
+  ('fixture-b@example.test');
 
 INSERT INTO memberships (organization_id, user_id, role)
 SELECT o.id, u.id, 'owner'

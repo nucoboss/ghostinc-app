@@ -12,7 +12,8 @@ La capa gratuita (`APP-003`) está terminada: `/buscar` permite razón social so
 - [x] Completar threat model y contratos de autenticación propia (`IAM-003`).
 - [x] Implementar registro por email y contraseñas Argon2id con enlace de un solo uso (`IAM-005`).
 - [x] Login con email/contraseña, sesiones opacas y BFF con límites, rotación y revocación (`IAM-006`).
-- [ ] Implementar TOTP obligatorio para admin y opcional para usuarios.
+- [x] Completar TOTP obligatorio para admin y opcional para usuarios, con reautenticación explícita de alta/baja (`IAM-007`).
+- [x] Completar administración local y retirar SDK, rutas y variables Auth0 (`IAM-008`).
 - [ ] Migrar el esquema inicial a cuentas individuales vinculadas por `user_id` local.
 - [ ] Reemplazar datos demo del dashboard por consultas reales y autorizadas.
 - [x] Añadir esquemas estrictos de request y response a las rutas de causas Fastify (extender a futuras rutas al crearlas).
@@ -32,8 +33,8 @@ La capa gratuita (`APP-003`) está terminada: `/buscar` permite razón social so
 ## Prioridad 1: cuenta y API comercial
 
 - [x] Implementar alta por enlace de correo y recuperación de contraseña (`IAM-005`).
-- [x] Login con email/contraseña, sesiones opacas y administración local de usuarios (`IAM-006`).
-- [ ] Implementar MFA TOTP obligatorio para admin y opcional para usuarios.
+- [x] Login con email/contraseña, sesiones opacas y administración local de usuarios (`IAM-006`, `IAM-008`).
+- [x] Completar reautenticación de alta/baja sobre TOTP y códigos de recuperación (`IAM-007`).
 - [ ] Gestión real de cuenta individual y preferencias de seguridad.
 - [ ] Crear, listar, rotar, expirar y revocar API keys.
 - [ ] Mostrar la clave completa una sola vez.

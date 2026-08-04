@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BackendAuthError, backendLogin } from "@/lib/auth-backend";
-import { SESSION_ABSOLUTE_SECONDS, SESSION_COOKIE, isSameOriginRequest } from "@/lib/csrf";
+import {
+  MFA_CHALLENGE_COOKIE,
+  SESSION_ABSOLUTE_SECONDS,
+  SESSION_COOKIE,
+  isSameOriginRequest,
+} from "@/lib/csrf";
 import { sessionCookieOptions } from "@/lib/session";
 import { clientIp } from "@/lib/client-ip";
 
@@ -38,7 +43,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await backendLogin(body.email, body.password, clientIp(request));
-    const response = NextResponse.json({ user: result.user });
+    if (result.status === "mfa_required") {
+      const response = NextResponse.json({
+        status: "mfa_required",
+        user: result.user,
+        mfaEnrollmentRequired: result.mfaEnrollmentRequired,
+      });
+      response.cookies.set(
+        MFA_CHALLENGE_COOKIE,
+        result.token,
+        sessionCookieOptions(SESSION_ABSOLUTE_SECONDS),
+      );
+      response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions(), maxAge: 0 });
+      return response;
+    }
+    const response = NextResponse.json({ status: "authenticated", user: result.user });
     response.cookies.set(SESSION_COOKIE, result.token, sessionCookieOptions(SESSION_ABSOLUTE_SECONDS));
     return response;
   } catch (error) {

@@ -27,7 +27,7 @@ Si falla una fuente esencial, el backend no entrega resultados, devuelve un erro
 
 ### Identidad y administración
 
-Decisión del 2026-08-03: Ghostinc reemplazará Auth0 por autenticación propia. Fastify será la autoridad de identidad y el único componente con acceso a credenciales, sesiones, roles y MFA en PostgreSQL. Next.js actuará como BFF: recibirá formularios, llamará rutas internas con el token de servicio y manejará una cookie de sesión opaca HTTP-only; nunca almacenará contraseñas ni consultará directamente las tablas de autenticación.
+Decisión del 2026-08-03: Ghostinc reemplazó Auth0 por autenticación propia. Fastify es la autoridad de identidad y el único componente con acceso a credenciales, sesiones, roles y MFA en PostgreSQL. Next.js actúa como BFF: recibe formularios, llama rutas internas con el token de servicio y maneja una cookie de sesión opaca HTTP-only; nunca almacena contraseñas ni consulta directamente las tablas de autenticación.
 
 El alta comienza con un correo y un enlace de un solo uso para crear contraseña. El login posterior usa email y contraseña. El rol global `admin` se almacena en PostgreSQL y exige TOTP antes de obtener una sesión privilegiada; usuarios comunes pueden habilitar TOTP opcional. Contraseñas usan Argon2id, tokens y sesiones se guardan solo como hashes, y secretos TOTP se cifran con una clave externa a la base.
 
@@ -51,7 +51,7 @@ Las tablas `organizations` y `memberships` pertenecen al esquema inicial y deben
 El esquema inicial contiene:
 
 - `organizations`: organización y saldo actual.
-- `users`: identidad local vinculable a un proveedor externo.
+- `users`: identidad local con contraseña, estado, rol global y auditoría nativa.
 - `memberships`: roles por organización.
 - `api_keys`: hash HMAC, prefijo, últimos caracteres y ciclo de vida.
 - `credit_ledger`: movimientos inmutables de créditos.

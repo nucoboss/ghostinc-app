@@ -35,6 +35,18 @@ function backendSession(status: number, payload?: unknown) {
   fetchMock.mockResolvedValue(new Response(JSON.stringify(payload ?? {}), { status }));
 }
 
+function authenticatedUser(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "u-1",
+    email: "user@example.com",
+    globalRole: "user",
+    emailVerified: true,
+    authLevel: "full",
+    mfaVerifiedAt: null,
+    ...overrides,
+  };
+}
+
 describe("POST /api/auth/session", () => {
   it("rechaza origen cruzado", async () => {
     const response = await POST(request("ghostinc_session=token", { origin: "https://evil.example" }));
@@ -49,7 +61,7 @@ describe("POST /api/auth/session", () => {
   });
 
   it("devuelve el usuario sin rotar cuando el backend no renueva el token", async () => {
-    backendSession(200, { user: { id: "u-1", email: "user@example.com", globalRole: "user", emailVerified: true } });
+    backendSession(200, { user: authenticatedUser() });
     const response = await POST(request("ghostinc_session=token-1"));
 
     expect(response.status).toBe(200);
@@ -59,13 +71,22 @@ describe("POST /api/auth/session", () => {
 
   it("rota la cookie cuando el backend entrega un token renovado", async () => {
     backendSession(200, {
-      user: { id: "u-1", email: "user@example.com", globalRole: "user", emailVerified: true },
+      user: authenticatedUser(),
       token: "token-renovado",
     });
     const response = await POST(request("ghostinc_session=token-viejo"));
 
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain("ghostinc_session=token-renovado");
+  });
+
+  it("descarta la sesión pendiente de MFA sin abrir sesión", async () => {
+    backendSession(200, { user: authenticatedUser({ authLevel: "mfa" }) });
+    const response = await POST(request("ghostinc_session=token-nivel-mfa"));
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("set-cookie")).toContain("ghostinc_session=;");
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
   it("limpia la cookie cuando el backend rechaza la sesión", async () => {
