@@ -7,7 +7,7 @@ const stub = await startPjudStub();
 process.env.PJUD_API_BASE_URL = stub.url;
 
 const { buildApp } = await import("../src/app.js");
-const { apiRequestRows, creditBalance, ledgerDelta, seedOrganization, truncateAll } = await import("./helpers/db.js");
+const { apiRequestRows, creditBalance, ledgerDelta, seedUser, truncateAll } = await import("./helpers/db.js");
 
 const app = await buildApp();
 
@@ -40,7 +40,7 @@ describe("GET /api/v1/causas/rut/:rut (API comercial)", () => {
   });
 
   it("responde 402 con clave válida y saldo cero", async () => {
-    const { apiKey } = await seedOrganization(0);
+    const { apiKey } = await seedUser(0);
     const response = await app.inject({
       method: "GET",
       url: `/api/v1/causas/rut/${VALID_RUT}`,
@@ -51,7 +51,7 @@ describe("GET /api/v1/causas/rut/:rut (API comercial)", () => {
   });
 
   it("consume exactamente un crédito en una consulta exitosa", async () => {
-    const { organizationId, apiKey } = await seedOrganization(3);
+    const { userId, apiKey } = await seedUser(3);
     stub.setMode("ok");
 
     const response = await app.inject({
@@ -62,16 +62,16 @@ describe("GET /api/v1/causas/rut/:rut (API comercial)", () => {
 
     assert.equal(response.statusCode, 200);
     assert.equal(response.json().data.causas[0].rol, "O-123-2024");
-    assert.equal(await creditBalance(organizationId), 2);
-    assert.equal(await ledgerDelta(organizationId), -1);
-    const rows = await apiRequestRows(organizationId);
+    assert.equal(await creditBalance(userId), 2);
+    assert.equal(await ledgerDelta(userId), -1);
+    const rows = await apiRequestRows(userId);
     assert.equal(rows.length, 1);
     assert.equal(rows[0]!.status_code, 200);
     assert.equal(rows[0]!.credits_charged, 1);
   });
 
   it("devuelve 502 y compensa el crédito cuando PJUD falla", async () => {
-    const { organizationId, apiKey } = await seedOrganization(3);
+    const { userId, apiKey } = await seedUser(3);
     stub.setMode("server-error");
 
     const response = await app.inject({
@@ -82,16 +82,16 @@ describe("GET /api/v1/causas/rut/:rut (API comercial)", () => {
 
     assert.equal(response.statusCode, 502);
     assert.equal(response.json().error, "upstream_error");
-    assert.equal(await creditBalance(organizationId), 3);
-    assert.equal(await ledgerDelta(organizationId), 0);
-    const rows = await apiRequestRows(organizationId);
+    assert.equal(await creditBalance(userId), 3);
+    assert.equal(await ledgerDelta(userId), 0);
+    const rows = await apiRequestRows(userId);
     assert.equal(rows.length, 1);
     assert.equal(rows[0]!.status_code, 502);
     assert.equal(rows[0]!.credits_charged, 0);
   });
 
   it("devuelve 404 y compensa el crédito cuando PJUD no encuentra causas", async () => {
-    const { organizationId, apiKey } = await seedOrganization(3);
+    const { userId, apiKey } = await seedUser(3);
     stub.setMode("not-found");
 
     const response = await app.inject({
@@ -102,12 +102,12 @@ describe("GET /api/v1/causas/rut/:rut (API comercial)", () => {
 
     assert.equal(response.statusCode, 404);
     assert.equal(response.json().error, "upstream_error");
-    assert.equal(await creditBalance(organizationId), 3);
-    assert.equal(await ledgerDelta(organizationId), 0);
+    assert.equal(await creditBalance(userId), 3);
+    assert.equal(await ledgerDelta(userId), 0);
   });
 
   it("rechaza con 400 y sin consumir créditos los parámetros fuera de contrato", async () => {
-    const { organizationId, apiKey } = await seedOrganization(3);
+    const { userId, apiKey } = await seedUser(3);
     stub.setMode("ok");
     const baseline = stub.requests.length;
 
@@ -137,13 +137,13 @@ describe("GET /api/v1/causas/rut/:rut (API comercial)", () => {
       assert.ok(Array.isArray(response.json().details));
     }
 
-    assert.equal(await creditBalance(organizationId), 3);
-    assert.equal(await ledgerDelta(organizationId), 0);
+    assert.equal(await creditBalance(userId), 3);
+    assert.equal(await ledgerDelta(userId), 0);
     assert.equal(stub.requests.length, baseline, "no debe llamarse a PJUD con parámetros inválidos");
   });
 
   it("admite parámetros de contrato y los reenvía a PJUD", async () => {
-    const { apiKey } = await seedOrganization(1);
+    const { apiKey } = await seedUser(1);
     stub.setMode("ok");
 
     const response = await app.inject({

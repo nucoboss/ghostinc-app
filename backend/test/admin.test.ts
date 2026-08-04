@@ -88,9 +88,9 @@ describe("GET /internal/admin/overview", () => {
     });
     assert.equal(response.statusCode, 200);
     const body = response.json();
-    assert.ok(body.data.metrics.organizations === 0);
+    assert.ok(body.data.metrics.users === 1);
     assert.ok(Array.isArray(body.data.activity));
-    assert.ok(Array.isArray(body.data.organizations));
+    assert.ok(Array.isArray(body.data.accounts));
   });
 });
 

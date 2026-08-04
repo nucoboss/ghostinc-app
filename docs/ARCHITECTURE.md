@@ -46,17 +46,15 @@ La ruta interna no se publica mediante Caddy en producción.
 
 El producto comercial usa cuentas individuales: cada usuario local corresponde a un cliente y es dueño de sus API keys, créditos, consumo y facturación. El rol global `admin` se reserva a operadores de Ghostinc; no existen roles, equipos ni membresías entre clientes.
 
-Las tablas `organizations` y `memberships` pertenecen al esquema inicial y deben retirarse o migrarse mediante nuevas migraciones antes de conectar el portal a datos reales. No representan el modelo objetivo.
+Las tablas `organizations` y `memberships` fueron retiradas por `IAM-002`: cada usuario local es dueño directo de sus API keys, créditos, consumo y facturación (`user_id` como identidad canónica derivada de la sesión, nunca de parámetros).
 
-El esquema inicial contiene:
+El esquema actual contiene:
 
-- `organizations`: organización y saldo actual.
-- `users`: identidad local con contraseña, estado, rol global y auditoría nativa.
-- `memberships`: roles por organización.
-- `api_keys`: hash HMAC, prefijo, últimos caracteres y ciclo de vida.
-- `credit_ledger`: movimientos inmutables de créditos.
-- `api_requests`: telemetría comercial sin almacenar el RUT.
-- `billing_events`: eventos idempotentes de Mercado Pago y su estado de procesamiento.
+- `users`: identidad local con contraseña, estado, rol global, saldo de créditos y auditoría nativa.
+- `api_keys`: hash HMAC, prefijo, últimos caracteres y ciclo de vida, vinculadas a un usuario.
+- `credit_ledger`: movimientos inmutables de créditos por usuario.
+- `api_requests`: telemetría comercial sin almacenar el RUT, por usuario.
+- `billing_events`: eventos idempotentes de Mercado Pago y su estado de procesamiento, por usuario.
 - `schema_migrations`: migraciones aplicadas.
 
 ### Caddy y Cloudflare
@@ -115,7 +113,7 @@ La búsqueda gratuita permanece limitada a PJUD, con los filtros y el límite ac
 
 ## Persistencia y consistencia
 
-El saldo se actualiza dentro de una transacción con bloqueo de organización. El ledger conserva la razón de cada movimiento. Este diseño evita dobles consumos concurrentes, pero requiere pruebas de concurrencia antes de producción.
+El saldo se actualiza dentro de una transacción con bloqueo del usuario propietario (`FOR UPDATE` sobre `api_keys` y `users`). El ledger conserva la razón de cada movimiento. Este diseño evita dobles consumos concurrentes, pero requiere pruebas de concurrencia antes de producción.
 
 Las migraciones se ejecutan al iniciar el backend. Son idempotentes por nombre y se registran en `schema_migrations`. Antes de usar múltiples réplicas debe añadirse un advisory lock o un job de migración independiente.
 

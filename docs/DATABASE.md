@@ -38,12 +38,11 @@ docker compose exec -e DATABASE_URL=postgresql://ghostinc:ghostinc_local@postgre
 docker compose exec postgres psql -U ghostinc -d ghostinc \
   -c "SELECT * FROM schema_migrations ORDER BY applied_at;"
 
-# Restricciones del esquema (verificadas en DB-001):
-# - organizations.credit_balance >= 0 (CHECK)
+# Restricciones del esquema (verificadas en DB-001 y ampliadas por IAM-002):
+# - users.credit_balance >= 0 (CHECK)
 # - credit_ledger.delta <> 0 (CHECK)
 # - api_keys.key_hash UNIQUE
-# - memberships.role IN ('owner','admin','developer','billing') (CHECK)
-# - FKs: api_keys/memberships/credit_ledger -> organizations; api_requests -> api_keys
+# - FKs: api_keys/credit_ledger/api_requests/billing_events -> users
 ```
 
 ## Backup y restauración en base separada (verificado)
@@ -62,15 +61,15 @@ docker compose exec -T postgres psql -U ghostinc -d ghostinc_restore < /tmp/ghos
 
 # 4. Evidencia:
 docker compose exec postgres psql -U ghostinc -d ghostinc_restore \
-  -c "SELECT (SELECT count(*) FROM organizations) AS orgs, (SELECT count(*) FROM credit_ledger) AS ledger;"
+  -c "SELECT (SELECT count(*) FROM users) AS usuarios, (SELECT count(*) FROM credit_ledger) AS ledger;"
 ```
 
-Resultado verificado en DB-001: conteos idénticos entre origen y restauración (3 orgs, 2 claves, 1 entrada de ledger, 1 migración).
+El procedimiento fue verificado originalmente en `DB-001`; desde `IAM-002`, la evidencia compara usuarios y ledger porque organizaciones y membresías ya no existen.
 
 ## Fixtures
 
 - `backend/test/fixtures/basic.sql`: datos mínimos sintéticos (sin RUT reales ni secretos) para demos y pruebas.
-- La suite automatizada siembra datos vía helpers en `backend/test/helpers/db.ts` (`seedOrganization`), con `key_hash` generados por HMAC en cada ejecución.
+- La suite automatizada siembra datos vía helpers en `backend/test/helpers/db.ts` (`seedUser`), con `key_hash` generados por HMAC en cada ejecución.
 
 ## Notas de inmutabilidad del ledger
 

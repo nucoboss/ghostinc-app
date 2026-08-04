@@ -2,7 +2,7 @@ import "server-only";
 
 export type AdminOverview = {
   metrics: {
-    organizations: number;
+    users: number;
     active_keys: number;
     available_credits: number;
     requests_24h: number;
@@ -11,16 +11,16 @@ export type AdminOverview = {
   };
   activity: Array<{
     request_id: string;
-    organization: string;
+    account: string;
     key_name: string | null;
     status_code: number;
     duration_ms: number;
     credits_charged: number;
     created_at: string;
   }>;
-  organizations: Array<{
+  accounts: Array<{
     id: string;
-    name: string;
+    email: string;
     credit_balance: number;
     api_keys: number;
     requests_30d: number;

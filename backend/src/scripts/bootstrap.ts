@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { db } from "../db.js";
 import { hashApiKey } from "../services/credits.js";
 
-const organizationName = process.env.BOOTSTRAP_ORG_NAME ?? "Ghostinc Demo";
+const userEmail = process.env.BOOTSTRAP_USER_EMAIL ?? "demo@ghostinc.local";
 const credits = Number.parseInt(process.env.BOOTSTRAP_CREDITS ?? "100", 10);
 
 if (!Number.isInteger(credits) || credits < 1) {
@@ -14,20 +14,23 @@ const client = await db.connect();
 
 try {
   await client.query("BEGIN");
-  const organization = await client.query<{ id: string }>(
-    "INSERT INTO organizations (name, credit_balance) VALUES ($1, $2) RETURNING id",
-    [organizationName, credits],
+  const user = await client.query<{ id: string }>(
+    `INSERT INTO users (email, credit_balance)
+     VALUES ($1, $2)
+     ON CONFLICT (lower(email)) DO UPDATE SET credit_balance = users.credit_balance + $2
+     RETURNING id`,
+    [userEmail, credits],
   );
-  const organizationId = organization.rows[0]!.id;
+  const userId = user.rows[0]!.id;
   await client.query(
-    `INSERT INTO api_keys (organization_id, name, key_hash, prefix, last_four)
+    `INSERT INTO api_keys (user_id, name, key_hash, prefix, last_four)
      VALUES ($1, 'Bootstrap', $2, $3, $4)`,
-    [organizationId, hashApiKey(apiKey), "pjud_live_", apiKey.slice(-4)],
+    [userId, hashApiKey(apiKey), "pjud_live_", apiKey.slice(-4)],
   );
   await client.query(
-    `INSERT INTO credit_ledger (organization_id, delta, reason, metadata)
+    `INSERT INTO credit_ledger (user_id, delta, reason, metadata)
      VALUES ($1, $2, 'bootstrap', $3)`,
-    [organizationId, credits, JSON.stringify({ organizationName })],
+    [userId, credits, JSON.stringify({ userEmail })],
   );
   await client.query("COMMIT");
 

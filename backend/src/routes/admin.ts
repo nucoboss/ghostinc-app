@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db.js";
 import { hasInternalAccess } from "../lib/internal-auth.js";
-import { checkSession, sessionHasRecentMfa } from "../services/auth-sessions.js";
+import { requireAdminActor, sessionTokenFromRequest } from "../lib/authorize.js";
 import { setUserBlocked, setUserRole } from "../services/auth-store.js";
 import { issueAuthToken } from "../services/auth-tokens.js";
 import { config } from "../config.js";
@@ -35,20 +35,6 @@ const adminInviteBodySchema = {
   },
 } as const;
 
-async function requireAdminActor(body: { token: string }) {
-  const session = await checkSession(body.token);
-  if (session.kind !== "ok" || session.user.globalRole !== "admin" || !sessionHasRecentMfa(session.user)) {
-    const error = new Error("ADMIN_ACTOR_MFA_REQUIRED") as Error & { statusCode: number };
-    error.statusCode = 403;
-    throw error;
-  }
-  return session.user;
-}
-
-function sessionTokenHeader(value: string | string[] | undefined) {
-  return typeof value === "string" ? value : "";
-}
-
 export async function adminRoutes(app: FastifyInstance) {
   app.addHook("onRequest", async (request, reply) => {
     if (!hasInternalAccess(request)) {
@@ -57,7 +43,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.get("/users", async (request) => {
-    await requireAdminActor({ token: sessionTokenHeader(request.headers["x-session-token"]) });
+    await requireAdminActor(sessionTokenFromRequest(request));
     const result = await db.query<{
       id: string;
       email: string;
@@ -102,7 +88,7 @@ export async function adminRoutes(app: FastifyInstance) {
     },
   }, async (request, reply) => {
     const body = request.body as { token: string; email: string };
-    const actor = await requireAdminActor(body);
+    const actor = await requireAdminActor(body.token);
     const issued = await issueAuthToken(body.email, "registration", actor.id);
     if (!issued) {
       return reply.code(409).send({
@@ -132,7 +118,7 @@ export async function adminRoutes(app: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const actor = await requireAdminActor(request.body as { token: string });
+    const actor = await requireAdminActor((request.body as { token: string }).token);
     if (actor.id === request.params.id) {
       return reply.code(400).send({ error: "invalid_action", message: "No puedes bloquear tu propia cuenta." });
     }
@@ -164,7 +150,7 @@ export async function adminRoutes(app: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const actor = await requireAdminActor(request.body as { token: string });
+    const actor = await requireAdminActor((request.body as { token: string }).token);
     if (actor.id === request.params.id) {
       return reply.code(400).send({ error: "invalid_action", message: "No puedes desbloquear tu propia cuenta." });
     }
@@ -204,7 +190,7 @@ export async function adminRoutes(app: FastifyInstance) {
     },
   }, async (request, reply) => {
     const body = request.body as { token: string; role: "user" | "admin" };
-    const actor = await requireAdminActor(body);
+    const actor = await requireAdminActor(body.token);
     if (actor.id === request.params.id) {
       return reply.code(400).send({ error: "invalid_action", message: "No puedes cambiar tu propio rol." });
     }
@@ -226,10 +212,10 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   app.get("/overview", async (request) => {
-    await requireAdminActor({ token: sessionTokenHeader(request.headers["x-session-token"]) });
-    const [metrics, activity, organizations] = await Promise.all([
+    await requireAdminActor(sessionTokenFromRequest(request));
+    const [metrics, activity, accounts] = await Promise.all([
       db.query<{
-        organizations: number;
+        users: number;
         active_keys: number;
         available_credits: number;
         requests_24h: number;
@@ -237,46 +223,46 @@ export async function adminRoutes(app: FastifyInstance) {
         credits_24h: number;
       }>(
         `SELECT
-          (SELECT count(*)::int FROM organizations) AS organizations,
+          (SELECT count(*)::int FROM users) AS users,
           (SELECT count(*)::int FROM api_keys WHERE revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())) AS active_keys,
-          (SELECT coalesce(sum(credit_balance), 0)::int FROM organizations) AS available_credits,
+          (SELECT coalesce(sum(credit_balance), 0)::int FROM users) AS available_credits,
           (SELECT count(*)::int FROM api_requests WHERE created_at >= now() - interval '24 hours') AS requests_24h,
           (SELECT count(*)::int FROM api_requests WHERE created_at >= now() - interval '24 hours' AND status_code >= 400) AS errors_24h,
           (SELECT coalesce(sum(credits_charged), 0)::int FROM api_requests WHERE created_at >= now() - interval '24 hours') AS credits_24h`,
       ),
       db.query<{
         request_id: string;
-        organization: string;
+        account: string;
         key_name: string | null;
         status_code: number;
         duration_ms: number;
         credits_charged: number;
         created_at: string;
       }>(
-        `SELECT r.request_id, o.name AS organization, k.name AS key_name, r.status_code,
+        `SELECT r.request_id, u.email AS account, k.name AS key_name, r.status_code,
                 r.duration_ms, r.credits_charged, r.created_at
          FROM api_requests r
-         JOIN organizations o ON o.id = r.organization_id
+         JOIN users u ON u.id = r.user_id
          LEFT JOIN api_keys k ON k.id = r.api_key_id
          ORDER BY r.created_at DESC
          LIMIT 20`,
       ),
       db.query<{
         id: string;
-        name: string;
+        email: string;
         credit_balance: number;
         api_keys: number;
         requests_30d: number;
         created_at: string;
       }>(
-        `SELECT o.id, o.name, o.credit_balance, o.created_at,
+        `SELECT u.id, u.email, u.credit_balance, u.created_at,
                 count(DISTINCT k.id)::int AS api_keys,
                 (count(DISTINCT r.id) FILTER (WHERE r.created_at >= now() - interval '30 days'))::int AS requests_30d
-         FROM organizations o
-         LEFT JOIN api_keys k ON k.organization_id = o.id AND k.revoked_at IS NULL
-         LEFT JOIN api_requests r ON r.organization_id = o.id
-         GROUP BY o.id
-         ORDER BY o.created_at DESC
+         FROM users u
+         LEFT JOIN api_keys k ON k.user_id = u.id AND k.revoked_at IS NULL
+         LEFT JOIN api_requests r ON r.user_id = u.id
+         GROUP BY u.id
+         ORDER BY u.created_at DESC
          LIMIT 100`,
       ),
     ]);
@@ -285,7 +271,7 @@ export async function adminRoutes(app: FastifyInstance) {
       data: {
         metrics: metrics.rows[0],
         activity: activity.rows,
-        organizations: organizations.rows,
+        accounts: accounts.rows,
       },
     };
   });

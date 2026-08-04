@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const links = [
   ["Monitoreo", "/admin"],
   ["Usuarios", "/admin/users"],
-  ["Organizaciones", "/admin/organizations"],
+  ["Cuentas", "/admin/accounts"],
 ];
 
 export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {

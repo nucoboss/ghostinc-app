@@ -14,10 +14,10 @@ La capa gratuita (`APP-003`) está terminada: `/buscar` permite razón social so
 - [x] Login con email/contraseña, sesiones opacas y BFF con límites, rotación y revocación (`IAM-006`).
 - [x] Completar TOTP obligatorio para admin y opcional para usuarios, con reautenticación explícita de alta/baja (`IAM-007`).
 - [x] Completar administración local y retirar SDK, rutas y variables Auth0 (`IAM-008`).
-- [ ] Migrar el esquema inicial a cuentas individuales vinculadas por `user_id` local.
+- [x] Migrar el esquema inicial a cuentas individuales vinculadas por `user_id` local (`IAM-002`).
 - [ ] Reemplazar datos demo del dashboard por consultas reales y autorizadas.
 - [x] Añadir esquemas estrictos de request y response a las rutas de causas Fastify (extender a futuras rutas al crearlas).
-- [ ] Probar aislamiento entre cuentas y concurrencia de créditos.
+- [x] Probar aislamiento entre cuentas y concurrencia de créditos (`IAM-002`).
 - [ ] Mover secretos a OCI Vault o un mecanismo equivalente.
 - [ ] Restringir OCI a rangos de Cloudflare y eliminar cualquier acceso público directo al origen.
 - [ ] Configurar CSP, HSTS y headers finales en frontend y proxy.
@@ -106,7 +106,7 @@ Ruta principal de producto local:
 2. `DB-001`: PostgreSQL local y migraciones reproducibles. **DONE** (2026-08-01): migraciones idempotentes verificadas en base aislada `ghostinc_verify`, restricciones y backup/restauración demostrados; runbook en `docs/DATABASE.md`.
 3. `SEC-002`: contratos y validación estricta de API. **DONE** (2026-08-01): esquemas JSON estrictos (query sin props desconocidas, enums y rangos según `API.md` del upstream propio), errores normalizados (400/401/402/404/429/5xx sin fugas), 29/29 tests, audit 0; contratos en `docs/API.md`.
 4. `IAM-003` a `IAM-008`: autenticación propia, correo, sesiones, TOTP, administración local y retiro de Auth0.
-5. `IAM-002` y `API-001`: aislamiento de cuentas y API keys sobre identidad local.
+5. `IAM-002`: **DONE** (2026-08-04): propiedad directa por `user_id`, retiro de organizaciones/membresías y tests negativos de aislamiento; `API-001` queda READY.
 6. `APP-001` y `APP-002`: dashboard real y estabilización frontend.
 7. `BILL-001`: Mercado Pago, solo después de resolver sus decisiones humanas.
 8. Post-MVP: `SRC-001` (inventario) y `API-002` (agregación multi-fuente), sin bloquear el lanzamiento.

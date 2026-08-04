@@ -8,7 +8,7 @@ const stub = await startPjudStub();
 process.env.PJUD_API_BASE_URL = stub.url;
 
 const { buildApp } = await import("../src/app.js");
-const { seedOrganization, truncateAll } = await import("./helpers/db.js");
+const { seedUser, truncateAll } = await import("./helpers/db.js");
 
 const app = await buildApp();
 
@@ -48,7 +48,7 @@ describe("Normalización de errores", () => {
   });
 
   it("5xx sanitizado: sin stack, SQL ni URLs internas", async () => {
-    const { apiKey } = await seedOrganization(1);
+    const { apiKey } = await seedUser(1);
     const { db } = await import("../src/db.js");
     await db.end();
     dbEnded = true;

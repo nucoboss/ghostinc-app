@@ -7,7 +7,7 @@ const stub = await startPjudStub();
 process.env.PJUD_API_BASE_URL = stub.url;
 
 const { buildApp } = await import("../src/app.js");
-const { apiRequestRows, creditBalance, ledgerDelta, seedOrganization, truncateAll } = await import("./helpers/db.js");
+const { apiRequestRows, creditBalance, ledgerDelta, seedUser, truncateAll } = await import("./helpers/db.js");
 
 const app = await buildApp();
 
@@ -24,7 +24,7 @@ after(async () => {
 
 describe("Concurrencia de saldo", () => {
   it("nunca gasta más saldo del disponible ante solicitudes simultáneas", async () => {
-    const { organizationId, apiKey } = await seedOrganization(5);
+    const { userId, apiKey } = await seedUser(5);
     stub.setMode("ok");
 
     const requests = Array.from({ length: 20 }, () =>
@@ -40,10 +40,10 @@ describe("Concurrencia de saldo", () => {
 
     assert.equal(statusCodes.filter((code) => code === 200).length, 5);
     assert.equal(statusCodes.filter((code) => code === 402).length, 15);
-    assert.equal(await creditBalance(organizationId), 0);
-    assert.equal(await ledgerDelta(organizationId), -5);
+    assert.equal(await creditBalance(userId), 0);
+    assert.equal(await ledgerDelta(userId), -5);
 
-    const rows = await apiRequestRows(organizationId);
+    const rows = await apiRequestRows(userId);
     assert.equal(rows.length, 5);
     assert.ok(rows.every((row) => row.status_code === 200 && row.credits_charged === 1));
   });

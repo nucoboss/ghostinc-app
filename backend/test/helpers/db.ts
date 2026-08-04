@@ -21,9 +21,7 @@ const TABLES = [
   "credit_ledger",
   "api_keys",
   "billing_events",
-  "memberships",
   "users",
-  "organizations",
 ];
 
 export async function truncateAll() {
@@ -31,44 +29,47 @@ export async function truncateAll() {
   await db.query(`TRUNCATE ${TABLES.join(", ")} RESTART IDENTITY CASCADE`);
 }
 
-export async function seedOrganization(credits = 10) {
+let seedCounter = 0;
+
+export async function seedUser(credits = 10) {
   const db = await getDb();
   const hashApiKey = await getHashApiKey();
-  const organization = await db.query<{ id: string }>(
-    "INSERT INTO organizations (name, credit_balance) VALUES ($1, $2) RETURNING id",
-    ["Org de prueba", credits],
+  const email = `usuario-${++seedCounter}-${Date.now()}@example.test`;
+  const user = await db.query<{ id: string }>(
+    "INSERT INTO users (email, credit_balance) VALUES ($1, $2) RETURNING id",
+    [email, credits],
   );
   const apiKey = newTestApiKey();
   await db.query(
-    "INSERT INTO api_keys (organization_id, name, key_hash, prefix, last_four) VALUES ($1, 'clave-test', $2, 'pjud', $3)",
-    [organization.rows[0]!.id, hashApiKey(apiKey), apiKey.slice(-4)],
+    "INSERT INTO api_keys (user_id, name, key_hash, prefix, last_four) VALUES ($1, 'clave-test', $2, 'pjud', $3)",
+    [user.rows[0]!.id, hashApiKey(apiKey), apiKey.slice(-4)],
   );
-  return { organizationId: organization.rows[0]!.id, apiKey };
+  return { userId: user.rows[0]!.id, apiKey };
 }
 
-export async function creditBalance(organizationId: string) {
+export async function creditBalance(userId: string) {
   const db = await getDb();
   const result = await db.query<{ credit_balance: number }>(
-    "SELECT credit_balance FROM organizations WHERE id = $1",
-    [organizationId],
+    "SELECT credit_balance FROM users WHERE id = $1",
+    [userId],
   );
   return result.rows[0]!.credit_balance;
 }
 
-export async function ledgerDelta(organizationId: string) {
+export async function ledgerDelta(userId: string) {
   const db = await getDb();
   const result = await db.query<{ total: number }>(
-    "SELECT COALESCE(SUM(delta), 0)::int AS total FROM credit_ledger WHERE organization_id = $1",
-    [organizationId],
+    "SELECT COALESCE(SUM(delta), 0)::int AS total FROM credit_ledger WHERE user_id = $1",
+    [userId],
   );
   return result.rows[0]!.total;
 }
 
-export async function apiRequestRows(organizationId: string) {
+export async function apiRequestRows(userId: string) {
   const db = await getDb();
   const result = await db.query<{ status_code: number; credits_charged: number }>(
-    "SELECT status_code, credits_charged FROM api_requests WHERE organization_id = $1",
-    [organizationId],
+    "SELECT status_code, credits_charged FROM api_requests WHERE user_id = $1",
+    [userId],
   );
   return result.rows;
 }
