@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "Ghostinc | Investiga empresas chilenas",
   description:
     "OSINT corporativo para consultar antecedentes públicos de empresas chilenas.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
