@@ -25,7 +25,7 @@
     "argon2": "^0.45.1",
     "dotenv": "latest",
     "fastify": "latest",
-    "otpauth": "^9.5.1",
+    "otpauth": "^9.5.2",
     "pg": "latest",
     "zod": "latest"
   },
@@ -33,6 +33,6 @@
     "@types/node": "latest",
     "@types/pg": "latest",
     "tsx": "latest",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   }
 }
